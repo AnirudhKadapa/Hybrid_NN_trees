@@ -1,4 +1,5 @@
 import torch
+import time
 
 # This utility builds the routes which the end leaf takes
 def build_path_matrices(depth):
@@ -6,12 +7,12 @@ def build_path_matrices(depth):
     num_nodes = 2**depth-1
 
     path_node = torch.zeros(num_leaves,depth,dtype=torch.long)
-    path_direction = torch.zeros(num_leaves,depth,dtype=torch.float32)
+    path_direction = torch.zeros(num_leaves,depth,dtype=torch.bool)
 
     for leaf in range(num_leaves):
         node = 0
         for level in range(depth):
-            direction = (leaf << (depth-level-1)& 1)
+            direction = (leaf >> (depth-level-1)& 1)
 
             path_node[leaf,level] = node
             path_direction[leaf,level] = direction
@@ -33,7 +34,7 @@ def build_path_masks(depth):
     for leaf in range(num_leaves):
         node = 0
         for level in range(depth):
-            direction = (leaf << (depth-level-1)&1)
+            direction = (leaf >> (depth-level-1)&1)
 
             if direction==1:
                 path_right[node,leaf] = 1
@@ -44,6 +45,49 @@ def build_path_masks(depth):
 
     return path_left,path_right
  
+
+def build_path_masks_fast(depth, device=None):
+    num_leaves = 2 ** depth
+    num_nodes = 2 ** depth - 1
+
+    leaves = torch.arange(num_leaves, device=device)  # (L,)
+
+    path_left = torch.zeros(num_nodes, num_leaves, device=device)
+    path_right = torch.zeros(num_nodes, num_leaves, device=device)
+
+    node = torch.zeros(num_leaves, dtype=torch.long, device=device)
+
+    for level in range(depth):
+        directions = (leaves >> (depth - level - 1)) & 1  # 0 = left, 1 = right
+
+        leaf_ids = torch.arange(num_leaves, device=device)
+
+        path_left[node[directions == 0], leaf_ids[directions == 0]] = 1.0
+        path_right[node[directions == 1], leaf_ids[directions == 1]] = 1.0
+
+        node = 2 * node + 1 + directions
+
+    return path_left, path_right
+
+def build_paths(depth, device=None):
+    num_leaves = 2 ** depth
+    leaves = torch.arange(num_leaves, device=device)
+
+    path_nodes = torch.zeros(num_leaves, depth, dtype=torch.long, device=device)
+    path_dirs = torch.zeros(num_leaves, depth, dtype=torch.bool, device=device)
+
+    node = torch.zeros(num_leaves, dtype=torch.long, device=device)
+
+    for level in range(depth):
+        direction = (leaves >> (depth - level - 1)) & 1
+
+        path_nodes[:, level] = node
+        path_dirs[:, level] = direction.float()
+
+        node = 2 * node + 1 + direction
+
+    return path_nodes, path_dirs
+
 
 def smooth_step(z):
     t = (z + 0.5).clamp(0, 1)
@@ -64,3 +108,16 @@ def routing_loop(probs, depth, B, device):
         curr = (curr.unsqueeze(-1) * children).reshape(B, -1)
 
     return curr
+
+if __name__=="__main__":
+    node, dir = build_path_matrices(3)
+    node1, dir1 = build_paths(3)
+    if torch.equal(node,node1) and torch.equal(dir, dir1): print(True)
+    print()
+    print(dir1.type())
+    improvement = (dir.nelement()*dir.element_size())/(dir1.nelement()*dir1.element_size())
+    print(f"Reduction:{improvement}x")
+    print()
+    print(dir.shape)
+    torch.testing.assert_close(dir1, dir, rtol=1e-4, atol=1e-4)
+    
