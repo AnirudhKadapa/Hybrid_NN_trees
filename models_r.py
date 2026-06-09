@@ -33,8 +33,8 @@ class SinglularNATtree(nn.Module):
 
         return out
 
-# NAT TREE shared weights
-class SharedWeightSingleTree(nn.Module):
+# NAT TREE shared weights(shared)
+class SharedWeightSingularTree(nn.Module):
     def __init__(self,input_dim, depth, num_classes):
         super().__init__()
 
@@ -56,8 +56,32 @@ class SharedWeightSingleTree(nn.Module):
         out = leaf_probs @ self.leaf_logits  # (B, num_classes)
 
         return out
+    
+# oblivious Singular NAT Tree
+class LevelSharedSingularTree(nn.Module):
+    def __init__(self,input_dim, depth, num_classes):
+        super().__init__()
 
+        self.num_leaves = 2**depth
+        self.num_nodes = 2**depth-1
+        self.node_weights = nn.Linear(input_dim, depth, bias=True)
+        self.leaf_logits = nn.Parameter(torch.randn(self.num_leaves,num_classes)*0.01)
 
+        path_nodes,path_dirs = build_paths(depth,device=None)
+        self.register_buffer("path_nodes",path_nodes)
+        self.register_buffer("path_dirs",path_dirs)
+
+    def forward(self,x):
+        node_logits = self.node_weights(x)
+        p_right = smooth_step(node_logits)
+        path_p = p_right.unsqueeze(1).expand(-1, self.num_leaves, -1)  # (B, num_leaves, depth)
+        path_probs = torch.where(self.path_dirs.unsqueeze(0), path_p, 1.0-path_p)  # (1, num_leaves, depth)
+        leaf_probs = path_probs.prod(dim=-1)  
+        out = leaf_probs @ self.leaf_logits   
+
+        return out
+
+     
 
 
 
