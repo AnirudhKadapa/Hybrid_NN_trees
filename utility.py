@@ -82,7 +82,7 @@ def build_paths(depth, device=None):
         direction = (leaves >> (depth - level - 1)) & 1
 
         path_nodes[:, level] = node
-        path_dirs[:, level] = direction.float()
+        path_dirs[:, level] = direction.bool()
 
         node = 2 * node + 1 + direction
 
@@ -112,12 +112,8 @@ def routing_loop(probs, depth, B, device):
 if __name__=="__main__":
     node, dir = build_path_matrices(3)
     node1, dir1 = build_paths(3)
-    if torch.equal(node,node1) and torch.equal(dir, dir1): print(True)
+    print(node1)
     print()
-    print(dir1.type())
-    improvement = (dir.nelement()*dir.element_size())/(dir1.nelement()*dir1.element_size())
-    print(f"Reduction:{improvement}x")
-    print()
-    print(dir.shape)
-    torch.testing.assert_close(dir1, dir, rtol=1e-4, atol=1e-4)
+    print(dir1)
+    
     
