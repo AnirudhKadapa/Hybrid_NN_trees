@@ -73,8 +73,8 @@ def build_paths(depth, device=None):
     num_leaves = 2 ** depth
     leaves = torch.arange(num_leaves, device=device)
 
-    path_nodes = torch.zeros(num_leaves, depth, dtype=torch.long, device=device)
-    path_dirs = torch.zeros(num_leaves, depth, dtype=torch.bool, device=device)
+    path_nodes = torch.zeros(num_leaves, depth, device=device)
+    path_dirs = torch.zeros(num_leaves, depth, device=device)
 
     node = torch.zeros(num_leaves, dtype=torch.long, device=device)
 
@@ -82,7 +82,7 @@ def build_paths(depth, device=None):
         direction = (leaves >> (depth - level - 1)) & 1
 
         path_nodes[:, level] = node
-        path_dirs[:, level] = direction.bool()
+        path_dirs[:, level] = direction
 
         node = 2 * node + 1 + direction
 
@@ -110,10 +110,15 @@ def routing_loop(probs, depth, B, device):
     return curr
 
 if __name__=="__main__":
-    node, dir = build_path_matrices(3)
-    node1, dir1 = build_paths(3)
-    print(node1)
+    node, dir = build_path_masks(2)
+    node1, dir1 = build_paths(2)
+
+    node_weights = torch.randn(2, 3, 3)
+    print(node_weights)
     print()
-    print(dir1)
-    
+    new_path = node_weights[:,node1.long()]
+
+    print(new_path)
+    print()
+    print(new_path.shape)
     

@@ -1,8 +1,8 @@
 import torch 
-import torch.nn as nn
+import torch.nn as nn 
 import torch.nn.functional as F
 import numpy as np
-from utility import build_path_masks, smooth_step
+from utility import build_path_masks, smooth_step, build_paths
 
 class PlainNN(nn.Module):
     def __init__(self, input_dim, hidden_dim, dropout, n_classes):
@@ -120,20 +120,81 @@ class FastNATLinearSharedLayer(nn.Module):
 
         return self.drop(out)
 
-class FastNATLinearSharedNet(nn.Module):
-    def __init__(self, input_dim, n_nodes, depth1=6, depth2=6,
-                 dropout=0.0, n_classes=7):
+# Fully independent Soft Differentiable Tree with Smooth Step
+class FullyIndependentSDT(nn.Module):
+    def __init__(self, input_dim, depth, num_classes, device):
+        self.num_leaves = 2**depth
+        self.num_nodes = 2**depth - 1 
+
+        self.node_weights = nn.Linear(input_dim, self.num_nodes, bias=True, device= device)
+        self.leaf_weights = nn.Parameter(torch.randn(self.num_leaves, num_classes, device=device) * 0.01)
+
+        path_nodes, path_dirs = build_paths(depth,device)
+
+        self.register_buffer("path_nodes",path_nodes.long())
+        self.register_buffer("path_dirs",path_dirs.long())
+
+    def forward(self,x):
+        decision_logits = self.node_weights(x)
+        eps = 1e-6
+        probs = smooth_step(decision_logits).clamp(eps,1-eps)
+        
+        log_probs_right = torch.log(probs)
+        log_probs_left = torch.log(1.0-probs)
+
+        log_probs = torch.stack([log_probs_left,log_probs_right],dim=-1)
+
+        path_log_probs = log_probs[:,self.path_nodes,self.path_dirs]
+        log_path_probs = path_log_probs.sum(dim=-1)
+        path_probs = torch.exp(log_path_probs)
+        out = path_probs @ self.leaf_weights
+        
+        return self.drop(out)
+
+# fast SDT using smooth function
+class FastSDT(nn.Module):
+    def __init__(self,input_dim, depth, num_classes):
         super().__init__()
 
-        self.layer1 = FastNATLinearSharedLayer(input_dim, n_nodes, depth1, dropout)
-        self.layer2 = FastNATLinearSharedLayer(n_nodes, n_nodes, depth2, dropout)
-        self.out = nn.Linear(n_nodes, n_classes)
+        self.num_nodes = 2**depth-1
+        self.num_leaves = 2**depth
 
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-        return self.out(x)
+        self.node_weights = nn.Linear(input_dim,self.num_nodes,bias=True)
+        self.leaf_logits = nn.Parameter(torch.randn(self.num_leaves,num_classes)*0.01)
+        
+        '''
+        both path_nodes and path_dirs have the sanme shape -> (num_leaves, depth)
+        '''
+        path_nodes, path_dirs = build_paths(depth)
+        self.register_buffer("path_nodes",path_nodes.long())
+        self.register_buffer("path_dirs",path_dirs.long())
+
+    def forward(self,x):
+        node_logits = self.node_weights(x)
+        eps = 1e-6
+        probs = smooth_step(node_logits).clamp(eps,1-eps)
+
+        '''
+        node_logits -> (B,num_nodes)
+        probs -> (B, num_nodes)
+        '''
+        log_probs_left = torch.log(probs)
+        log_probs_right = torch.log(1.0-probs)
+   
+        '''
+        log_all_probs -> (B,num_nodes,2)
+        
+        (left,right): multiple batches, num_nodes across the row and column (left, right)
+
+        '''
+        log_all_probs = torch.stack([log_probs_left,log_probs_right],dim=-1) 
+
+        # path_log_probs -> (B, num_leaves, depth)
+        path_log_probs = log_all_probs[:,self.path_nodes,self.path_dirs]
+        log_probs_path = path_log_probs.sum(dim=-1)
+        prob_paths = torch.exp(log_probs_path)
+
+        return prob_paths @ self.leaf_logits
+        
 
 
-
-            

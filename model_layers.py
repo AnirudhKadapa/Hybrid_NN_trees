@@ -81,18 +81,52 @@ class LevelSharedSingularTree(nn.Module):
 
         return out
 
-     
+
+# oblivious NAT -Has same weight at the same level in a singular tree and different across parallel trees
+# oblivious NAT layer
 
 
 
-
-# oblivious NAT -Has same weight at the same level in a single tree and different across parallel trees
-class Oblivious_NAT(nn.Module):
-    def __init__(self, input_dim, n_trees, depth, num_classes):
+# NAT fully independent Layer
+class FullyIndependentNATLayer(nn.Module):
+    def __init__(self,input_dim, n_trees, depth ,output_dim):
         super().__init__()
+        self.num_nodes = 2**depth-1
+        self.num_leaves = 2**depth
 
+        self.node_weights = nn.Parameter(torch.randn(n_trees,self.num_nodes,input_dim)*0.01)
+        self.node_bias = nn.Parameter(torch.randn(n_trees,self.num_nodes))
 
-# NAT fully independent
+        self.leaf_logits = nn.Paramater(torch.randn(n_trees, self.num_leaves, output_dim)*0.01)
+
+        path_nodes, path_dir = build_paths(depth)
+        self.register_buffer("path_nodes",path_nodes.long())
+        self.register_buffer("path_dir",path_dir.long())
+    
+    def forward(self,x):
+        node_logits = torch.einsum("bi,tni->btn",x,self.node_weights) + self.node_bias.unsqueeze(0)
+        eps =1e-6
+        probs = smooth_step(node_logits).clamp(eps,1-eps)
+        '''
+        probs shape -> (batch, n_trees, num_nodes)
+        '''
+        log_probs_left = torch.log(probs)
+        log_probs_right = torch.right(1.0-probs)
+
+        '''
+        log_all_probs -> (batch, num_trees, num_nodes, 2)
+        So, for log_path_probs -> (batch, num_trees, num_leaves, depth)
+        probs_all_log_paths -> (batch, num_trees, num_leaves)
+        '''
+        log_all_probs = torch.stack([log_probs_left,log_probs_right],dim=-1)
+        log_path_probs = log_all_probs[:,:,self.path_nodes,self.path_dir]
+        prob_all_log_paths = log_path_probs.sum(dim=-1)
+
+        prob_paths = torch.exp(prob_all_log_paths) 
+
+        tree_outputs = torch.einsum("btl,tlo->bto",prob_paths,self.leaf_logits)
+
+        return tree_outputs
 
 
 # NAT shared- shared across all parallel trees and independent for the leaves
