@@ -85,10 +85,38 @@ class LevelSharedSingularTree(nn.Module):
 
 
 # oblivious NAT -Has same weight at the same level in a singular tree and different across parallel trees
-# oblivious NAT layer
+class ObliviousSharedLayer(nn.Module):
+    def __init__(self,input_dim, n_trees, depth):
+        super().__init__()
+        self.depth = depth
+        self.num_leaves = 2**depth
+        self.num_nodes = 2**depth
 
+        self.node_weights = nn.Parameter(torch.randn(n_trees, depth,input_dim)*0.01)
+        self.bias = nn.Parameter(torch.zeros(n_trees,depth))
 
+        self.leaf_weights = nn.Parameter(torch.randn(n_trees, self.num_leaves)*0.01)
 
+        path_nodes,path_dir = build_paths(depth)
+        self.register_buffer("path_nodes",path_nodes.float())
+        self.register_buffer("path_dir",path_dir.float())
+
+    def _leaf_prob(self,x):
+        with torch.autocast(device_type=x.device.type,enabled=False):
+            x32 = x.float()
+            node_weights = self.node_weights.float()
+            b32 = self.bias.float()
+            node_logits = torch.einsum("bi,tdi -> btd",x32,node_weights) + b32.unsqueeze(0)
+            eps = 1e-6
+            probs = smooth_step(node_logits).clamp(eps,1.0-eps)
+
+            log_prob_left = torch.log(probs)
+            log_probs_right = torch.log(1.0-probs)
+
+            log_all_probs = torch.cat([log_prob_left,log_probs_right],dim=-1) # shape log_all_probs ->(Batch, depth, 2)
+            log_probs_paths = log_all_probs[:,self.path_nodes,self.path_dir] # shape log_probs_path -> (Batch, leaves, depth)
+            
+            
 
 # NAT fully independent Layer
 class FullyIndependentNATLayer(nn.Module):

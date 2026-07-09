@@ -24,6 +24,38 @@ def build_path_matrices(depth):
 
     return path_node,path_direction 
 
+def build_paths(depth, device=None):
+    num_leaves = 2 ** depth
+    leaves = torch.arange(num_leaves, device=device)
+
+    path_nodes = torch.zeros(num_leaves, depth, device=device)
+    path_dirs = torch.zeros(num_leaves, depth, device=device)
+
+    node = torch.zeros(num_leaves, dtype=torch.long, device=device)
+
+    for level in range(depth):
+        direction = (leaves >> (depth - level - 1)) & 1
+
+        path_nodes[:, level] = node
+        path_dirs[:, level] = direction
+
+        node = 2 * node + 1 + direction
+
+    return path_nodes, path_dirs
+
+def build_path_lvl_shared(depth):
+    num_leaves = 2**depth
+    leaves = torch.arange(num_leaves,dtype=torch.float)
+    path_nodes = torch.zeros(num_leaves, depth, dtype=torch.float)
+    path_dir = torch.zeros(num_leaves,depth,dtype=torch.float)
+
+    for level in range(depth):
+        direction = (leaves >> (depth-level-1)) & 1
+        path_dir[:,level] = direction
+        path_nodes =  
+
+    
+
 def build_path_masks(depth):
     num_leaves = 2**depth
     num_nodes = 2**depth-1
@@ -69,24 +101,7 @@ def build_path_masks_fast(depth, device=None):
 
     return path_left, path_right
 
-def build_paths(depth, device=None):
-    num_leaves = 2 ** depth
-    leaves = torch.arange(num_leaves, device=device)
-
-    path_nodes = torch.zeros(num_leaves, depth, device=device)
-    path_dirs = torch.zeros(num_leaves, depth, device=device)
-
-    node = torch.zeros(num_leaves, dtype=torch.long, device=device)
-
-    for level in range(depth):
-        direction = (leaves >> (depth - level - 1)) & 1
-
-        path_nodes[:, level] = node
-        path_dirs[:, level] = direction
-
-        node = 2 * node + 1 + direction
-
-    return path_nodes, path_dirs
+    
 
 
 def smooth_step(z):
@@ -110,15 +125,8 @@ def routing_loop(probs, depth, B, device):
     return curr
 
 if __name__=="__main__":
-    node, dir = build_path_masks(2)
-    node1, dir1 = build_paths(2)
-
-    node_weights = torch.randn(2, 3, 3)
-    print(node_weights)
+    node, dir = build_paths(3)
+    print(node)
     print()
-    new_path = node_weights[:,node1.long()]
-
-    print(new_path)
-    print()
-    print(new_path.shape)
+    print(dir)
     

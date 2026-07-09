@@ -196,5 +196,39 @@ class FastSDT(nn.Module):
 
         return prob_paths @ self.leaf_logits
         
+# Fast SDT with smooth function with shared weights across levels
+class ObliviousWeghtSharedNAT(nn.Module):
+    def __init__(self,input_dim, depth,num_classes):
+        super().__init__()
+        self.depth = depth
+        self.num_leaves = 2**depth
+        self.num_nodes = 2**depth-1
+
+        self.node_weights = nn.Linear(input_dim,depth)
+        self.leaf_weights = nn.Linear(self.num_leaves, num_classes, bias=False)
+
+        _, path_dir = build_paths(depth)
+
+        self.register_buffer("path_dir",path_dir.float())
+
+    def forward(self,x):
+        node_logits = self.node_weights(x)
+        eps = 1e-6
+        probs = smooth_step(node_logits).clamp(eps,1-eps)
+
+        log_prob_left = torch.log(probs)
+        log_prob_right = torch.log(1.0-probs)
+
+        log_all_paths = torch.cat([log_prob_left,log_prob_right],dim=-1) # shape -> (batch, depth, 2)
+        level_idx = torch.arange(self.depth).unsqueeze(0)
+
+        path_log_probs = log_all_paths[:, level_idx, self.path_dirs]
+        leaf_log_probs = path_log_probs.sum(-1) 
+
+        leaf_probs = torch.exp(leaf_log_probs)
+        logits = self.leaf_weights(leaf_probs)
+        return logits
+
+
 
 
