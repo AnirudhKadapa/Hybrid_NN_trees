@@ -42,19 +42,7 @@ def build_paths(depth, device=None):
         node = 2 * node + 1 + direction
 
     return path_nodes, path_dirs
-
-def build_path_lvl_shared(depth):
-    num_leaves = 2**depth
-    leaves = torch.arange(num_leaves,dtype=torch.float)
-    path_nodes = torch.zeros(num_leaves, depth, dtype=torch.float)
-    path_dir = torch.zeros(num_leaves,depth,dtype=torch.float)
-
-    for level in range(depth):
-        direction = (leaves >> (depth-level-1)) & 1
-        path_dir[:,level] = direction
-        path_nodes =  
-
-    
+     
 
 def build_path_masks(depth):
     num_leaves = 2**depth

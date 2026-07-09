@@ -90,16 +90,17 @@ class ObliviousSharedLayer(nn.Module):
         super().__init__()
         self.depth = depth
         self.num_leaves = 2**depth
-        self.num_nodes = 2**depth
+        self.num_nodes = 2**depth-1
 
         self.node_weights = nn.Parameter(torch.randn(n_trees, depth,input_dim)*0.01)
         self.bias = nn.Parameter(torch.zeros(n_trees,depth))
 
         self.leaf_weights = nn.Parameter(torch.randn(n_trees, self.num_leaves)*0.01)
 
-        path_nodes,path_dir = build_paths(depth)
-        self.register_buffer("path_nodes",path_nodes.float())
-        self.register_buffer("path_dir",path_dir.float())
+        _,path_dir = build_paths(depth)
+        path_nodes = torch.arange(depth,dtype=torch.long())
+        self.register_buffer("path_nodes",path_nodes)
+        self.register_buffer("path_dir",path_dir.long())
 
     def _leaf_prob(self,x):
         with torch.autocast(device_type=x.device.type,enabled=False):
@@ -110,13 +111,57 @@ class ObliviousSharedLayer(nn.Module):
             eps = 1e-6
             probs = smooth_step(node_logits).clamp(eps,1.0-eps)
 
-            log_prob_left = torch.log(probs)
+            log_probs_left = torch.log(probs)
             log_probs_right = torch.log(1.0-probs)
 
-            log_all_probs = torch.cat([log_prob_left,log_probs_right],dim=-1) # shape log_all_probs ->(Batch, depth, 2)
-            log_probs_paths = log_all_probs[:,self.path_nodes,self.path_dir] # shape log_probs_path -> (Batch, leaves, depth)
-            
-            
+            log_all_probs = torch.stack([log_probs_left,log_probs_right],dim=-1) # shape log_all_probs ->(Batch, trees, depth, 2)
+            log_probs_paths = log_all_probs[:,:,self.path_nodes,self.path_dir] # shape log_probs_path -> (Batch, trees, leaves, depth)
+            log_probs_leaves = log_probs_paths.sum(-1) #shape log_probs_leaves -> (batch, trees,leaves)
+            leaf_probs = torch.exp(log_probs_leaves)
+            return leaf_probs
+    
+    @torch.no_grad()
+    def leaf_entropy(self,x: torch.tensor, batch_size=8192):
+        batch_sum = None
+        n = x.size(0)
+        for i in range(0,n,batch_size):
+            leaf_probs = self._leaf_prob(x[i:i+batch_size]) #shape leaf_probs -> (batch, trees, leaves)
+            leaf_sum = leaf_probs.sum(0)
+
+            if batch_sum is None:
+                batch_sum = leaf_sum
+            else:
+                batch_sum.add_(leaf_sum) # shape -> (trees, leaves)
+        probs = batch_sum/n
+        probs_check = probs/probs.sum(-1,keepdim=True).clamp(min=1e-8)
+        
+        H = torch.special.entr(probs_check).sum(-1)
+        H_max = math.log(self.num_leaves)
+
+        return (H.mean()/H_max).item()
+
+    def forward(self,x):
+        leaf_prob_paths = self._leaf_prob(x)
+        leaf_logits = torch.einsum("btl,tl->bt",leaf_prob_paths,self.leaf_weights)
+        return leaf_logits
+
+class ObliviousNATNet(nn.Module):
+    def __init__(self,input_dim, output_dim, depth, n_trees):
+        super().__init__()
+        self.layer1 = ObliviousSharedLayer(input_dim,n_trees,depth)
+        self.layernorm = nn.LayerNorm(n_trees)
+        self.layer2 = ObliviousSharedLayer(n_trees,n_trees,depth)
+        self.linear = nn.Linear(n_trees,output_dim)
+    
+    def forward(self,x:torch.tensor) -> torch.tensor:
+        layer1 = self.layer1(x)
+        layernorm = self.layernorm(layer1)
+        layer2 = self.layer2(layernorm)
+        linear = self.linear(layer2)
+        return linear
+
+
+
 
 # NAT fully independent Layer
 class FullyIndependentNATLayer(nn.Module):
@@ -189,6 +234,3 @@ class FullyIndependentNATLayer(nn.Module):
         tree_outputs = torch.einsum("btl,tl->bt",prob_paths,self.leaf_logits)
         return tree_outputs
     
-
-
-# NAT shared- shared across all parallel trees and independent for the leaves
