@@ -1,31 +1,15 @@
-import json,time
-import threading
-from tqdm import tqdm
 import numpy as np
 import torch
 from pathlib import Path
-import pandas as pd
 from sklearn.datasets import fetch_covtype
 from sklearn.model_selection import train_test_split
 from sklearn.utils import Bunch
 
 
 def download_dataset_covertype(cache_dir):
-    Path(cache_dir).mkdir(parents=True, exist_ok=True)
-    x = {}
-    def worker():    
-        x['data'] = fetch_covtype(data_home=cache_dir, as_frame=True)
-
-    with tqdm(desc="Fetching Covertype Dataset", bar_format="{desc}: {elapsed} elapsed") as pbar:
-        thread = threading.Thread(target=worker)
-        thread.start()
-
-        while thread.is_alive():
-            time.sleep(0.1)
-            pbar.update(0)
-    thread.join()
-    return x['data']
-
+    Path(cache_dir).mkdir(parents=True, exist_ok=True)   
+    return fetch_covtype(data_home=cache_dir)
+    
 def verify_covtype(cache_dir):
     base_path = Path(cache_dir) / "covertype"
 
@@ -58,17 +42,26 @@ def process_covertype(dataset : Bunch):
         )
     print(f"Saved numpy and pt file in {file_path}")
 
+def file_verification(filepath: Path)-> bool:
+    return filepath.exists()
 
 if __name__=="__main__":
     data_path = "."
-    
-    if verify_covtype(data_path):
-        print("dataset already downloaded")
-        covtype = fetch_covtype(data_home=data_path,download_if_missing=False)
-        process_covertype(covtype)
+
+    filepath_np = Path('./dataset_cache/covertype/covertype_train_test_val.npz')
+    filepath_pt = Path('./dataset_cache/covertype/covertype_train_test_val.pt')
+    if file_verification(filepath_np) and file_verification(filepath_pt):
+        print("Covertype Cache exists")
     else:
-        print(" Covertype dataset not downloaded")
-        covtype = download_dataset_covertype(data_path)   
+        if verify_covtype(data_path):
+            print("dataset already downloaded")
+            covtype = fetch_covtype(data_home=data_path,download_if_missing=False)
+
+            process_covertype(covtype)
+        else:
+            print(" Covertype dataset not downloaded")
+            covtype = download_dataset_covertype(data_path)  
+            process_covertype(covtype) 
         
 
     
