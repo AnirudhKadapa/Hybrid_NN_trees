@@ -1,7 +1,3 @@
-"""
-Here we are going to add vectorized version of the model with improvement versions of NAT and other comparison models like xgboost etc.
-"""
-
 import torch 
 import torch.nn as nn
 from torch.amp import autocast
@@ -83,7 +79,6 @@ class LevelSharedSingularTree(nn.Module):
 
         return out
 
-
 # oblivious NAT -Has same weight at the same level in a singular tree and different across parallel trees
 class ObliviousSharedLayer(nn.Module):
     def __init__(self,input_dim, n_trees, depth):
@@ -159,9 +154,6 @@ class ObliviousNATNet(nn.Module):
         layer2 = self.layer2(layernorm)
         linear = self.linear(layer2)
         return linear
-
-
-
 
 # NAT fully independent Layer
 class FullyIndependentNATLayer(nn.Module):
