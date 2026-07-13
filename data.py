@@ -5,7 +5,6 @@ from sklearn.datasets import fetch_covtype
 from sklearn.model_selection import train_test_split
 from sklearn.utils import Bunch
 
-
 def download_dataset_covertype(cache_dir):
     Path(cache_dir).mkdir(parents=True, exist_ok=True)   
     return fetch_covtype(data_home=cache_dir)
