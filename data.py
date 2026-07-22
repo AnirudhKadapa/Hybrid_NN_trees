@@ -51,6 +51,7 @@ if __name__=="__main__":
     filepath_pt = Path('./dataset_cache/covertype/covertype_train_test_val.pt')
     if file_verification(filepath_np) and file_verification(filepath_pt):
         print("Covertype Cache exists")
+        covtype = fetch_covtype(data_home=data_path,download_if_missing=False)
     else:
         if verify_covtype(data_path):
             print("dataset already downloaded")
@@ -61,7 +62,7 @@ if __name__=="__main__":
             print(" Covertype dataset not downloaded")
             covtype = download_dataset_covertype(data_path)  
             process_covertype(covtype) 
-        
+    print(covtype.keys())
 
     
 

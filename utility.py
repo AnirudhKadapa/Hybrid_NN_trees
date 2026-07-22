@@ -19,7 +19,7 @@ def build_paths(depth, device=None):
 
     return path_nodes, path_dirs
 
-def build_path_masks(depth, device=None):
+def build_path_masksc(depth, device=None):
     num_leaves = 2 ** depth
     num_nodes = 2 ** depth - 1
 
@@ -47,20 +47,6 @@ def smooth_step(z):
     t = (z + 0.5).clamp(0, 1)
     return t * t * (3.0 - 2.0 * t)
 
-def routing_loop(probs, depth, B, device):
-    curr = torch.ones(B, 1, device=device)
-
-    for d in range(depth):
-        start = (1 << d) - 1
-        n_split = 1 << d
-
-        p_right = probs[:, start:start + n_split]
-        p_left = 1.0 - p_right
-
-        children = torch.stack([p_left, p_right], dim=-1)
-        curr = (curr.unsqueeze(-1) * children).reshape(B, -1)
-
-    return curr
 
 if __name__=="__main__":
     node, dir = build_paths(3)

@@ -19,7 +19,7 @@ class ObliviousSharedLayer(nn.Module):
         self.leaf_weights = nn.Parameter(torch.randn(n_trees, self.num_leaves)*0.01)
 
         _,path_dir = build_paths(depth)
-        path_nodes = torch.arange(depth,dtype=torch.long())
+        path_nodes = torch.arange(depth, dtype=torch.long)
         self.register_buffer("path_nodes",path_nodes)
         self.register_buffer("path_dir",path_dir.long())
 
@@ -42,7 +42,7 @@ class ObliviousSharedLayer(nn.Module):
             return leaf_probs
     
     @torch.no_grad()
-    def leaf_entropy(self,x: torch.tensor, batch_size=8192):
+    def leaf_entropy(self,x: torch.Tensor, batch_size=8192):
         batch_sum = None
         n = x.size(0)
         for i in range(0,n,batch_size):
@@ -152,3 +152,9 @@ class FullyIndependentNATLayer(nn.Module):
         tree_outputs = torch.einsum("btl,tl->bt",prob_paths,self.leaf_logits)
         return tree_outputs
     
+
+
+if __name__=="__main__":
+    model = ObliviousNATNet(input_dim=10,output_dim=3,depth=2,n_trees=3)
+    for name, parameters in model.named_parameters():
+        print(f"{name}")
