@@ -5,8 +5,8 @@ import torch.nn as nn
 from torch.optim import AdamW, lr_scheduler
 from torch.amp import GradScaler
 from config import TrainingConfig
-from training_utils import get_parameters, atomic_save, validation_acc, verify_checkpoint
-
+from training_utils import get_parameters, atomic_save, verify_checkpoint, atomic_save_json
+from evals import validation_acc
 
 def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_train:torch.Tensor, y_val:torch.Tensor, device, config:TrainingConfig):
     model_raw = model_raw.to(device)
@@ -34,12 +34,12 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
     ckpt = config.ckpt    
     if ckpt.exists():
         checkpoint = torch.load(ckpt, map_location="cpu",weights_only=False)
-        verify_checkpoint(checkpoint, X_train.shape[1], config.n_trees, config.depth, config.n_classes, config.batch_size)        
+        verify_checkpoint(checkpoint, X_train.shape[1], config.n_trees, config.depth, config.n_classes, config.batch_size, config.epochs)        
 
         last_completed_epoch = checkpoint["last_epoch"]
         model_raw.load_state_dict(checkpoint["last_model_state"])
-        optimizer.load_state_dict(checkpoint["last_optimizer_state"])
         scheduler.load_state_dict(checkpoint["last_scheduler_state"])
+        optimizer.load_state_dict(checkpoint["last_optimizer_state"])
         scaler.load_state_dict(checkpoint["last_scaler_state"])
         best_val_accuracy = checkpoint["best_val_acc"]
         best_state = checkpoint["best_model_state"]
@@ -49,10 +49,13 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
 
         print(f"Resuming from last Completed Epoch {last_completed_epoch}")
 
-    if start_epoch > config.epochs:
-        print("Checkpoint already completed")
-        print(f"Finished Training for set epochs {config.epochs}")
-        return (history, best_val_accuracy, best_state)
+        if checkpoint["completed"]==True:
+            return (history,best_val_accuracy, best_state)
+
+        if start_epoch > config.epochs:
+            print("Checkpoint already completed")
+            print(f"Finished Training for set epochs {config.epochs}")
+            return (history, best_val_accuracy, best_state)
 
     t0 = time.perf_counter()
     stop_reason = None
@@ -68,7 +71,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
         for i in range(0, N_new, config.batch_size):
             idx = perm[i : i + config.batch_size]
             
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
 
             with torch.autocast(device_type=device, dtype=torch.float16, enabled=(device=="cuda")):
                 output = model(X_train[idx])
@@ -97,7 +100,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
         
         if nan_flag:
             print(f"Stopped training due to numerical instability at epoch {epoch}")
-            stop_reason = "not finite loss"
+            stop_reason = "numerical_instability"
             break
 
         scheduler.step()
@@ -143,10 +146,15 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
                 "depth": config.depth,
                 "n_classes": config.n_classes,
                 "batch_size": config.batch_size,
+                "epochs": config.epochs,
+                "lr": config.lr,
+                "weight_decay": config.weight_decay,
+                "patience": config.patience,
             },
         }
 
         atomic_save(checkpoint, config.ckpt)
+        atomic_save_json(history, config.full_results)
 
         if improved or (epoch%5==0):
             elapsed = time.perf_counter() - t0
@@ -156,7 +164,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
 
         if patience >= config.patience:
             print(f"Early stop at epoch {epoch}. Training not improving, patience {config.patience} reached")
-            stop_reason = "Early stop due to patience"
+            stop_reason = "early_stopping"
             break
 
     if stop_reason is None:
@@ -164,7 +172,8 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
 
     if ckpt.exists():
         final_checkpoint = torch.load(ckpt, map_location="cpu",weights_only=False)
-        final_checkpoint["completed"] = True
+        if stop_reason=="max_epochs" or stop_reason=="early_stopping":
+            final_checkpoint["completed"] = True
         final_checkpoint["stop_reason"] = stop_reason
         atomic_save(final_checkpoint,config.ckpt)
     
