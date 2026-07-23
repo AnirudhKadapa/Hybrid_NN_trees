@@ -1,6 +1,10 @@
+import json, os
 import torch
+from pathlib import Path
 from data import load_data
 from config import TrainingConfig, parse_config
+from model_layers import ObliviousNATNet
+
 
 def main():
     config = parse_config()
@@ -14,7 +18,13 @@ def main():
     X_test = X_test.to(device)
     y_test = y_test.to(device)
 
+    input_dim = X_train.shape[1]
+
+    model = ObliviousNATNet(input_dim, config.n_classes, config.depth, config.n_trees)
+
     
+
+
 
 
     

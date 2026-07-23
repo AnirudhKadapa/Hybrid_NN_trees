@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import torch
 from pathlib import Path
@@ -71,10 +72,11 @@ if __name__=="__main__":
     data_path = Path('.')
     cache_dir = Path("./dataset_cache/covertype")
     filepath_np = cache_dir / 'covertype_train_test_val.npz'
-    filepath_pt = cache_dir / 'covertype_train_test_val.pt'
+    filepath_pt = cache_dir / 'covertype_train_test_val.pt' 
+
     if filepath_np.exists() and filepath_pt.exists():
         print("Covertype Cache exists")
-        covtype = fetch_covtype(data_home=data_path,download_if_missing=False)
+        # covtype = fetch_covtype(data_home=data_path,download_if_missing=False)
     else:
         if verify_covtype(data_path):
             print("dataset already downloaded")
@@ -85,7 +87,7 @@ if __name__=="__main__":
             print(" Covertype dataset not downloaded")
             covtype = download_dataset_covertype(data_path)  
             process_covertype(covtype, data_path) 
-    print(covtype.keys())
+    # print(covtype.keys())
     X_train, _, _, _, _, _ = load_data(cache_dir)
     X_train = X_train.to("cuda")
     print(X_train.device)
