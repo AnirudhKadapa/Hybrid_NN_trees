@@ -42,7 +42,6 @@ def build_path_masksc(depth, device=None):
 
     return path_left, path_right
 
-
 def smooth_step(z):
     t = (z + 0.5).clamp(0, 1)
     return t * t * (3.0 - 2.0 * t)

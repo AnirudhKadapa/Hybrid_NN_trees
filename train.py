@@ -98,7 +98,6 @@ def training(
             epoch_loss += loss.item() * batch_size_seen
             batch_total += batch_size_seen
         
-        
         if nan_flag:
             print(f"Stopped training due to numerical instability at epoch {epoch}")
             break

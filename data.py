@@ -3,6 +3,7 @@ import torch
 from pathlib import Path
 from sklearn.datasets import fetch_covtype
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from sklearn.utils import Bunch
 
 def download_dataset_covertype(cache_dir):
@@ -18,14 +19,19 @@ def verify_covtype(cache_dir):
 
     return feature_exist and target_path
 
-def process_covertype(dataset : Bunch):
+def process_covertype(dataset : Bunch, cache_dir:Path):
     X = dataset.data.astype(np.float32)
     y = (dataset.target-1).astype(np.int64)
     
     X_train_val, X_test, y_train_val, y_test = train_test_split(X, y, test_size=0.10, random_state=42, shuffle=True, stratify=y)
     X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=1 / 9, random_state=42, shuffle=True,stratify=y_train_val)
 
-    file_path = Path('./dataset_cache/covertype')
+    scaler = StandardScaler()
+    X_train[:, :10] = scaler.fit_transform(X_train[:, :10]).astype(np.float32)
+    X_val[:, :10] = scaler.transform(X_val[:,:10]).astype(np.float32)
+    X_test[:,:10] = scaler.transform(X_test[:,:10]).astype(np.float32)
+
+    file_path = cache_dir
     file_path.mkdir(parents=True,exist_ok=True)
 
     np.savez(file_path / "covertype_train_test_val.npz", X_train=X_train,y_train=y_train,X_test=X_test,y_test=y_test,X_val=X_val,y_val=y_val)
@@ -41,15 +47,32 @@ def process_covertype(dataset : Bunch):
         )
     print(f"Saved numpy and pt file in {file_path}")
 
-def file_verification(filepath: Path)-> bool:
-    return filepath.exists()
+def load_data(cache_dir: Path):
+    filename = "covertype_train_test_val.pt"
+    file = Path(cache_dir/filename).resolve() 
+
+    if not file.exists():
+        raise FileNotFoundError(
+            f"File does not exist in the {cache_dir} "
+        )
+
+    data = torch.load(file, map_location="cpu", weights_only=True)
+
+    return (
+        data["X_train"],
+        data["y_train"], 
+        data["X_val"], 
+        data["y_val"], 
+        data["X_test"],
+        data["y_test"]
+    )
 
 if __name__=="__main__":
-    data_path = "."
-
-    filepath_np = Path('./dataset_cache/covertype/covertype_train_test_val.npz')
-    filepath_pt = Path('./dataset_cache/covertype/covertype_train_test_val.pt')
-    if file_verification(filepath_np) and file_verification(filepath_pt):
+    data_path = Path('.')
+    cache_dir = Path("./dataset_cache/covertype")
+    filepath_np = cache_dir / 'covertype_train_test_val.npz'
+    filepath_pt = cache_dir / 'covertype_train_test_val.pt'
+    if filepath_np.exists() and filepath_pt.exists():
         print("Covertype Cache exists")
         covtype = fetch_covtype(data_home=data_path,download_if_missing=False)
     else:
@@ -57,12 +80,16 @@ if __name__=="__main__":
             print("dataset already downloaded")
             covtype = fetch_covtype(data_home=data_path,download_if_missing=False)
 
-            process_covertype(covtype)
+            process_covertype(covtype, data_path)
         else:
             print(" Covertype dataset not downloaded")
             covtype = download_dataset_covertype(data_path)  
-            process_covertype(covtype) 
+            process_covertype(covtype, data_path) 
     print(covtype.keys())
+    X_train, _, _, _, _, _ = load_data(cache_dir)
+    X_train = X_train.to("cuda")
+    print(X_train.device)
+    # print(X_train.shape[1])
 
     
 
