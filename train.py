@@ -13,7 +13,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
     model_params = get_parameters(model_raw)
 
     try:
-        model = torch.compile(model_raw)
+        model = torch.compile(model_raw, mode="reduce-overhead")
     except Exception:
         model = model_raw
 
@@ -77,7 +77,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
                 output = model(X_train[idx])
                 loss = loss_criterion(output, y_train[idx])
             
-            if not torch.isnan(loss).any():
+            if torch.isnan(loss):
                 print(f"loss values are either Nan or not finite at epoch {epoch}")
                 nan_flag = True
                 break

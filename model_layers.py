@@ -19,8 +19,9 @@ class ObliviousSharedLayer(nn.Module):
         self.leaf_weights = nn.Parameter(torch.randn(n_trees, self.num_leaves)*0.01)
 
         left_mask, right_mask = build_level_masks(depth)   # (depth, num_leaves)
-        self.register_buffer("left_mask", left_mask)
-        self.register_buffer("right_mask", right_mask)
+        combined_mask = torch.cat([left_mask, right_mask], dim=0)   # (2*depth, num_leaves)
+        self.register_buffer("combined_mask", combined_mask)
+
  
     def _leaf_prob(self,x):
         with torch.autocast(device_type=x.device.type,enabled=False):
