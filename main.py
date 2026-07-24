@@ -11,10 +11,13 @@ from evals import chunked_probs
 
 
 def main():
+    torch.manual_seed(42)
+    torch.set_float32_matmul_precision('high')
     config = parse_config()
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.cache_dir)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-
+    print(device)
+    print()
     X_train = X_train.to(device)
     y_train = y_train.to(device)
     X_val = X_val.to(device)

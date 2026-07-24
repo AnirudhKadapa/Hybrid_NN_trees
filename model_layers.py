@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.amp import autocast
 import math
-from utility import build_paths, smooth_step
+from utility import build_level_masks, smooth_step, build_paths
 
 
 # oblivious NAT -Has same weight at the same level in a singular tree and different across parallel trees
@@ -18,11 +18,10 @@ class ObliviousSharedLayer(nn.Module):
 
         self.leaf_weights = nn.Parameter(torch.randn(n_trees, self.num_leaves)*0.01)
 
-        _,path_dir = build_paths(depth)
-        path_nodes = torch.arange(depth, dtype=torch.long)
-        self.register_buffer("path_nodes",path_nodes)
-        self.register_buffer("path_dir",path_dir.long())
-
+        left_mask, right_mask = build_level_masks(depth)   # (depth, num_leaves)
+        self.register_buffer("left_mask", left_mask)
+        self.register_buffer("right_mask", right_mask)
+ 
     def _leaf_prob(self,x):
         with torch.autocast(device_type=x.device.type,enabled=False):
             x32 = x.float()
@@ -31,15 +30,16 @@ class ObliviousSharedLayer(nn.Module):
             node_logits = torch.einsum("bi,tdi -> btd",x32,node_weights) + b32.unsqueeze(0)
             eps = 1e-6
             probs = smooth_step(node_logits).clamp(eps,1.0-eps)
-
+ 
             log_probs_left = torch.log(probs)
             log_probs_right = torch.log(1.0-probs)
+ 
+            log_probs_cat = torch.cat([log_probs_left, log_probs_right], dim=-1) # (B, T, 2*depth)
+            log_probs_leaves = torch.einsum("btd,dl->btl", log_probs_cat, self.combined_mask) # (B, T, leaves)
 
-            log_all_probs = torch.stack([log_probs_left,log_probs_right],dim=-1) # shape log_all_probs ->(Batch, trees, depth, 2)
-            log_probs_paths = log_all_probs[:,:,self.path_nodes,self.path_dir] # shape log_probs_path -> (Batch, trees, leaves, depth)
-            log_probs_leaves = log_probs_paths.sum(-1) #shape log_probs_leaves -> (batch, trees,leaves)
             leaf_probs = torch.exp(log_probs_leaves)
             return leaf_probs
+
     
     @torch.no_grad()
     def leaf_entropy(self,x: torch.Tensor, batch_size=8192):

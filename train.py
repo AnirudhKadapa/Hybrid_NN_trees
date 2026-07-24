@@ -17,7 +17,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
     except Exception:
         model = model_raw
 
-    optimizer = AdamW(model_params, lr=config.lr, weight_decay= config.weight_decay)
+    optimizer = AdamW(model_params, lr=config.lr, weight_decay= config.weight_decay, fused=(device=="cuda"))
     scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs)
     scaler = GradScaler(enabled=(device=="cuda"))
     loss_criterion = nn.CrossEntropyLoss()
@@ -63,7 +63,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
     for epoch in range(start_epoch,config.epochs+1):
         model.train()
         perm = torch.randperm(N,device=device)[:N_new]
-        epoch_loss = 0.0
+        epoch_loss = torch.zeros((), device=device)
         batch_total = 0
         nan_flag = False
 
@@ -77,25 +77,19 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
                 output = model(X_train[idx])
                 loss = loss_criterion(output, y_train[idx])
             
-            if not torch.isfinite(loss):
+            if not torch.isnan(loss).any():
                 print(f"loss values are either Nan or not finite at epoch {epoch}")
                 nan_flag = True
                 break
 
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
-            grad_norm = nn.utils.clip_grad_norm_(model.parameters(),1.0)
-
-            if not torch.isfinite(grad_norm):
-                print(f"Non finite gradient detected at epoch {epoch}")
-                nan_flag = True
-                break
-
+            nn.utils.clip_grad_norm_(model.parameters(),1.0)
             scaler.step(optimizer)
             scaler.update()
 
             batch_size_seen = idx.numel()
-            epoch_loss += loss.item() * batch_size_seen
+            epoch_loss += loss.detach() * batch_size_seen
             batch_total += batch_size_seen
         
         if nan_flag:
@@ -105,7 +99,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
 
         scheduler.step()
 
-        avg_loss = epoch_loss/batch_total
+        avg_loss = (epoch_loss/batch_total).item()
         val_acc = validation_acc(model,X_val,y_val)
         
         history.append(
@@ -163,7 +157,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
             elapsed = time.perf_counter() - t0
             print(f"  ep{epoch:4d}/{config.epochs}  loss={avg_loss:.4f}  "
                   f"val_acc={val_acc:.4f}  best={best_val_accuracy:.4f}"
-                  f"elapsed time = {elapsed}"
+                  f"  elapsed time = {round(elapsed,3)}"
                   f"  {'★' if improved else ''}")
 
 

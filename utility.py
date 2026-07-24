@@ -42,6 +42,13 @@ def build_path_masks(depth, device=None):
 
     return path_left, path_right
 
+def build_level_masks(depth, device=None):
+    _, path_dir = build_paths(depth, device)   # path_dir: (num_leaves, depth), 0/1
+    path_dir = path_dir.long().t()             # (depth, num_leaves)
+    left_mask = (path_dir == 0).float()
+    right_mask = (path_dir == 1).float()
+    return left_mask, right_mask
+
 def smooth_step(z):
     t = (z + 0.5).clamp(0, 1)
     return t * t * (3.0 - 2.0 * t)
