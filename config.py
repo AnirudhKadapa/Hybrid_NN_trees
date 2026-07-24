@@ -56,7 +56,7 @@ def trial_config(trial: optuna.Trial, base_config:TrainingConfig) -> TrainingCon
     depth = trial.suggest_categorical("depth",[4,6,8,10])
     n_trees = trial.suggest_categorical("n_trees",[64,96,112,120,128,136,144,152,192])
     label_smoothing = trial.suggest_float("label_smoothing",0.0,0.1)
-
+    
     return replace(
         base_config,
         lr = lr,
