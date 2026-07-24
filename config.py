@@ -9,7 +9,7 @@ class TrainingConfig:
     patience: int = 15
     lr : float = 3e-3
     batch_size: int = 4096
-    cache_dir: Path = Path("./dataset_cache/covertype/covertype_train_test_val.pt")
+    cache_dir: Path = Path("./dataset_cache/covertype")
     ckpt:Path = Path("./checkpoints/checkpoint_obnat.pt")
     full_results:Path= Path("./results/full_results.json")
     results:Path = Path("./results/Oblivious_nat_results.json")

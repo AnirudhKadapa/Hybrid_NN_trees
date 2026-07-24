@@ -160,7 +160,9 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
             elapsed = time.perf_counter() - t0
             print(f"  ep{epoch:4d}/{config.epochs}  loss={avg_loss:.4f}  "
                   f"val_acc={val_acc:.4f}  best={best_val_accuracy:.4f}"
+                  f"elapsed time = {elapsed}"
                   f"  {'★' if improved else ''}")
+
 
         if patience >= config.patience:
             print(f"Early stop at epoch {epoch}. Training not improving, patience {config.patience} reached")

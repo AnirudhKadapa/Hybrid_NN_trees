@@ -1,9 +1,9 @@
-import json, os, time
+import time
 import torch
 from pathlib import Path
 from sklearn.metrics import roc_auc_score, f1_score
 from data import load_data
-from config import TrainingConfig, parse_config
+from config import parse_config
 from model_layers import ObliviousNATNet
 from train import training
 from training_utils import atomic_save_json
@@ -31,6 +31,7 @@ def main():
     history, best_val_accuracy, best_state = training(model,X_train,X_val,y_train,y_val, device, config)
     elapsed = time.perf_counter()-t_start
 
+    config.model_weights.parent.parent.mkdir(parents=True, exist_ok=True)
     torch.save(best_state,config.model_weights)
 
     if best_state is not None:
@@ -42,7 +43,7 @@ def main():
     probs_cpu = probs.cpu().numpy()
     predictions = probs.argmax(1).cpu().numpy()
     y_true = y_test.cpu().numpy()
-    test_acc = float(predictions==y_true).mean()
+    test_acc = float((predictions==y_true).mean())
     test_f1  = float(f1_score(y_true, predictions, average="macro"))
     try:
         test_auc = float(roc_auc_score(
