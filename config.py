@@ -1,6 +1,7 @@
 from dataclasses import dataclass, replace
 from pathlib import Path
 import argparse
+import optuna
 
 @dataclass
 class TrainingConfig:
@@ -9,14 +10,18 @@ class TrainingConfig:
     patience: int = 15
     lr : float = 3e-3
     batch_size: int = 4096
+    label_smoothing:float = 0.0
+
     cache_dir: Path = Path("./dataset_cache/covertype")
     ckpt:Path = Path("./checkpoints/checkpoint_obnat.pt")
     full_results:Path= Path("./results/full_results.json")
     results:Path = Path("./results/Oblivious_nat_results.json")
     model_weights:Path = Path("./model_weights") 
+
     n_classes:int =7
     depth:int = 8
     n_trees:int = 144
+
     checkpoint_save:int = 10
 
 def parse_config() -> TrainingConfig:
@@ -25,6 +30,7 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--weight_decay", type=float, default=None, help="AdamW weigt decay")
     parser.add_argument("--patience", type=int, default=None, help="Early stop after")
     parser.add_argument("--lr", type=float, default=None, help="Model Learning rate")
+    parser.add_argument("label_smoothing", type=float, default=None, help="Cross Entropy label Smoothing")
     parser.add_argument("--batch_size", type=int, default=None, help="Size of each batch processed")
     parser.add_argument("--cache_dir", default=None, help="Directory of your file location")
     parser.add_argument("--ckpt", default=None, help="Checkpoint path for last file")
@@ -41,6 +47,27 @@ def parse_config() -> TrainingConfig:
     overrides = {key:value for key,value in vars(args).items() if value is not None}
 
     return replace(config, **overrides)
+
+
+def trial_config(trial: optuna.Trial, base_config:TrainingConfig) -> TrainingConfig:
+    lr = trial.suggest_float("lr",1e-4,1e-2, log=True)
+    weight_decay = trial.suggest_float("weight_decay",1e-6,1e-2,log=True)
+    batch_size = trial.suggest_categorical("batch_size",[4096])
+    depth = trial.suggest_categorical("depth",[4,6,8,10])
+    n_trees = trial.suggest_categorical("n_trees",[64,96,112,120,128,136,144,152,192])
+    label_smoothing = trial.suggest_float("label_smoothing",0.0,0.1)
+
+    return replace(
+        base_config,
+        lr = lr,
+        weight_decay=weight_decay,
+        batch_size = batch_size,
+        depth = depth,
+        n_trees = n_trees,
+        label_smoothing = label_smoothing   
+    )
+    
+
 
 
 
