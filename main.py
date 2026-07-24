@@ -31,7 +31,7 @@ def main():
     history, best_val_accuracy, best_state = training(model,X_train,X_val,y_train,y_val, device, config)
     elapsed = time.perf_counter()-t_start
 
-    config.model_weights.parent.parent.mkdir(parents=True, exist_ok=True)
+    config.model_weights.parent.mkdir(parents=True, exist_ok=True)
     torch.save(best_state,config.model_weights)
 
     if best_state is not None:

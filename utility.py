@@ -19,7 +19,7 @@ def build_paths(depth, device=None):
 
     return path_nodes, path_dirs
 
-def build_path_masksc(depth, device=None):
+def build_path_masks(depth, device=None):
     num_leaves = 2 ** depth
     num_nodes = 2 ** depth - 1
 

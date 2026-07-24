@@ -3,3 +3,6 @@ covertype
 dataset_cache
 __pycache__
 .vscode
+results
+checkpoints
+model_weights

@@ -124,37 +124,40 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
         else:
             patience += 1
 
+        checkpoint_every = config.checkpoint_save
+        should_checkpoint = improved or (epoch % checkpoint_every == 0) or (epoch == config.epochs)
+ 
+        if should_checkpoint:
+            last_model_state = {name:state_value.detach().cpu().clone() for name, state_value in model_raw.state_dict().items()}
 
-        last_model_state = {name:state_value.detach().cpu().clone() for name, state_value in model_raw.state_dict().items()}
-        checkpoint = {
-            "last_epoch":epoch,
-            "last_model_state":last_model_state,
-            "best_model_state":best_state,
-            "last_optimizer_state":optimizer.state_dict(),
-            "last_scheduler_state":scheduler.state_dict(),
-            "last_scaler_state":scaler.state_dict(),
-            "last_patience":patience,
-            "best_val_acc":best_val_accuracy,
-            "last_history_state":history,
+            checkpoint = {
+                "last_epoch":epoch,
+                "last_model_state":last_model_state,
+                "best_model_state":best_state,
+                "last_optimizer_state":optimizer.state_dict(),
+                "last_scheduler_state":scheduler.state_dict(),
+                "last_scaler_state":scaler.state_dict(),
+                "last_patience":patience,
+                "best_val_acc":best_val_accuracy,
+                "last_history_state":history,
 
-            "completed": False,
-            "stop_reason": stop_reason,
+                "completed": False,
+                "stop_reason": stop_reason,
 
-            "config": {
-                "input_dim": X_train.shape[1],
-                "n_trees": config.n_trees,
-                "depth": config.depth,
-                "n_classes": config.n_classes,
-                "batch_size": config.batch_size,
-                "epochs": config.epochs,
-                "lr": config.lr,
-                "weight_decay": config.weight_decay,
-                "patience": config.patience,
-            },
-        }
+                "config": {
+                    "input_dim": X_train.shape[1],
+                    "n_trees": config.n_trees,
+                    "depth": config.depth,
+                    "n_classes": config.n_classes,
+                    "batch_size": config.batch_size,
+                    "epochs": config.epochs,
+                    "lr": config.lr,
+                    "weight_decay": config.weight_decay,
+                    "patience": config.patience,
+                },
+            }
 
-        atomic_save(checkpoint, config.ckpt)
-        atomic_save_json(history, config.full_results)
+            atomic_save(checkpoint, config.ckpt)
 
         if improved or (epoch%5==0):
             elapsed = time.perf_counter() - t0

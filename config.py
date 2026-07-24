@@ -17,6 +17,7 @@ class TrainingConfig:
     n_classes:int =7
     depth:int = 8
     n_trees:int = 144
+    checkpoint_save:int = 10
 
 def parse_config() -> TrainingConfig:
     parser = argparse.ArgumentParser(description="ObnatNet")
@@ -30,9 +31,10 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--full_results", default=None, help="all results saved here")
     parser.add_argument("--results", default=None, help="saves json results for the training")
     parser.add_argument("--model_weights", default=None, help="model_weights save location")
-    parser.add_argument("--n_classes",default=None, help="Number of classes of dataset")
+    parser.add_argument("--n_classes",type=int, default=None, help="Number of classes of dataset")
     parser.add_argument("--depth", type=int, default=None, help="Tree depth")
     parser.add_argument("--n_trees", type=int, default=None, help="Number of trees per layer")
+    parser.add_argument("--checkpoint_save",type=int, default=None, help="Save last after every 10 epochs")
     args = parser.parse_args()
 
     config = TrainingConfig()
