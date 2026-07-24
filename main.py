@@ -13,6 +13,7 @@ from evals import chunked_probs
 def main():
     torch.manual_seed(42)
     torch.set_float32_matmul_precision('high')
+    torch._dynamo.config.cache_size_limit = 64
     config = parse_config()
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.cache_dir)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -34,11 +35,15 @@ def main():
     history, best_val_accuracy, best_state = training(model,X_train,X_val,y_train,y_val, device, config)
     elapsed = time.perf_counter()-t_start
 
-    config.model_weights.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(best_state,config.model_weights)
+    config.model_weights.mkdir(parents=True, exist_ok=True)
 
     if best_state is not None:
-        model.load_state_dict(best_state)
+        raise RuntimeError(
+            "Training ended before producing a valid best model state"
+        )
+
+    model.load_state_dict(best_state)
+    torch.save(best_state,config.model_weights/"/obnat_covertype.pt")
 
     model.eval()
 

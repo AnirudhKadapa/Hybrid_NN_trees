@@ -13,7 +13,7 @@ class TrainingConfig:
     ckpt:Path = Path("./checkpoints/checkpoint_obnat.pt")
     full_results:Path= Path("./results/full_results.json")
     results:Path = Path("./results/Oblivious_nat_results.json")
-    model_weights:Path = Path("./model_weights/obnat_covertype.pt") 
+    model_weights:Path = Path("./model_weights") 
     n_classes:int =7
     depth:int = 8
     n_trees:int = 144

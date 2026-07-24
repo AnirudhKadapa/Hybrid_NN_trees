@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 @torch.inference_mode()
-def chunked_probs(model:nn.Module, X_test:torch.Tensor, y_test:torch.Tensor, batch_size:int=8192):
+def chunked_probs(model:nn.Module, X_test:torch.Tensor, batch_size:int=8192):
     model.eval()
     final_probs = []
     for i in range(0,X_test.size(0),batch_size):
