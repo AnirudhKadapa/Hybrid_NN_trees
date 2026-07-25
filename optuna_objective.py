@@ -18,13 +18,9 @@ def objective(model:nn.Module, X_train:torch.Tensor, y_train, X_val, y_val, X_te
             val_acc= t_bestval,
             state= t_beststate,
             config= config,
-            trail_number= trial.number,
+            trial_number= trial.number,
             best_epoch=t_bestepoch
         )
-        trails_results = test_models(model, X_test, y_test)
-        print()
-        print(f"Obtained results for Trial {trial.number} \n")
-        print(f"Test Acc: {trails_results["test_acc"]} \n Test Auc: {trails_results['test_auc']} \n F1 score: {trails_results['test_f1']}")
 
         if update_best_results:
             print(f"New global best Obtained at Trail: {trial.number}, Best Val: {t_bestval}")

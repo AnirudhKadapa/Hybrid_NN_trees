@@ -1,7 +1,7 @@
 from pathlib import Path
 
 class GlobalBest:
-    def __init__(self, path:Path):
+    def __init__(self):
         self.val_acc = float('-inf')
         self.state = None
         self.config = None

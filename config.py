@@ -13,12 +13,13 @@ class TrainingConfig:
     label_smoothing:float = 0.0
     n_trials:int = 50 
 
+    study_name="Oblivious_nat_Covertype"
     cache_dir: Path = Path("./dataset_cache/covertype")
     ckpt:Path = Path("./checkpoints/checkpoint_obnat.pt")
     full_results:Path= Path("./results/full_results.json")
     results:Path = Path("./results/Oblivious_nat_results.json")
     model_weights:Path = Path("./model_weights") 
-    trail_log:Path = Path("./trial_logs/trial_log.csv")
+    trial_log:Path = Path("./trial_logs/trial_log.csv")
 
     n_classes:int =7
     depth:int = 8
@@ -32,9 +33,10 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--weight_decay", type=float, default=None, help="AdamW weigt decay")
     parser.add_argument("--patience", type=int, default=None, help="Early stop after")
     parser.add_argument("--lr", type=float, default=None, help="Model Learning rate")
-    parser.add_argument("label_smoothing", type=float, default=None, help="Cross Entropy label Smoothing")
+    parser.add_argument("--label_smoothing", type=float, default=None, help="Cross Entropy label Smoothing")
     parser.add_argument("--batch_size", type=int, default=None, help="Size of each batch processed")
     parser.add_argument("--n_trials", type=int, default=None,help="Number of optuna Trials")
+    parser.add_argument("--study_name",  default=None, help="optuna study name")
     parser.add_argument("--cache_dir", default=None, help="Directory of your file location")
     parser.add_argument("--ckpt", default=None, help="Checkpoint path for last file")
     parser.add_argument("--full_results", default=None, help="all results saved here")
@@ -48,7 +50,20 @@ def parse_config() -> TrainingConfig:
     args = parser.parse_args()
 
     config = TrainingConfig()
-    overrides = {key:value for key,value in vars(args).items() if value is not None}
+    path_fields = {
+        "cache_dir",
+        "ckpt",
+        "full_results",
+        "results",
+        "model_weights",
+        "trial_log",
+     }
+
+    overrides = {
+        key: Path(value) if key in path_fields else value
+        for key, value in vars(args).items()
+        if value is not None
+    }
 
     return replace(config, **overrides)
 

@@ -22,8 +22,10 @@ def log_trial_callback(study, trial, config:TrainingConfig):
         "params_count":  trial.user_attrs.get("params"),
         **trial.params,  # n_trees, lr, weight_decay, batch_size, dropout, label_smoothing
     }
-    file_exists = config.trail_log.mkdir(parents=True, exist_ok=True)
-    with open(config.trail_log, "a", newline="") as f:
+    log_path = config.trial_log
+    file_path = config.trial_log.parent.mkdir(parents=True, exist_ok=True)
+    file_exists = log_path.exists()
+    with open(config.trial_log, "a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=row.keys())
         if not file_exists:
             writer.writeheader()
@@ -33,6 +35,7 @@ def optuna_study(model:nn.Module, X_train, y_train, X_val, y_val, X_test, y_test
     global_best = GlobalBest()
 
     study = optuna.create_study(
+        study_name=config.study_name,
         direction="maximize",
         sampler=TPESampler(seed=42, multivariate=True),
         pruner=HyperbandPruner(min_resource=5, max_resource=config.epochs, reduction_factor=3)
@@ -41,7 +44,12 @@ def optuna_study(model:nn.Module, X_train, y_train, X_val, y_val, X_test, y_test
         lambda trial:objective(model, X_train, y_train, X_val, y_val, X_test, y_test, device, config, trial, global_best),
         n_trials= config.n_trials,
         gc_after_trial=True,
-        callbacks=[log_trial_callback]
+        callbacks=[    
+            lambda study, trial: log_trial_callback(
+            study,
+            trial,
+            config,
+        )]
     )
 
     best = study.best_trial
@@ -67,7 +75,7 @@ def optuna_study(model:nn.Module, X_train, y_train, X_val, y_val, X_test, y_test
     with open(config.results, "w") as f:
         json.dump(result, f, indent=2)
 
-    full_log_path = config.trials_log.replace(".csv", "_full.csv")
+    full_log_path = config.trial_log.with_name(f"{config.trial_log.stem}_full.csv")
     study.trials_dataframe().to_csv(full_log_path, index=False)
 
 if __name__=="__main__":
@@ -91,4 +99,4 @@ if __name__=="__main__":
     model = ObliviousNATNet(input_dim, config.n_classes, config.depth, config.n_trees)
 
     optuna_study(model,X_train, y_train, X_val, y_val, X_test, y_test, device, config)
-    
+

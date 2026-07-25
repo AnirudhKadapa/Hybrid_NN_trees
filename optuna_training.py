@@ -32,7 +32,8 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
     best_state = None
 
     print(f"Trial : {trial.number:03d}")
-
+    print(f"Num_trees: {config.n_trees}, Depth: {config.depth}, learning rate: {config.lr}, WD: {config.weight_decay}, LS:{config.label_smoothing}")
+    print()
     for epoch in range(1, config.epochs+1):
         model.train()
         perm = torch.randperm(N,device=device)[:N_new]
@@ -89,6 +90,7 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
             f"Loss {avg_loss:.5f} | "
             f"Val {val_acc:.5f} | "
             f"Best {best_val_accuracy:.5f}"
+            f"  {'★' if improved else ''}"
         )
 
         trial.report(

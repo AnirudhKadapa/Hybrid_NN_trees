@@ -7,7 +7,7 @@ from sklearn.metrics import roc_auc_score, f1_score
 def test_models(model:nn.Module, X_test:torch.Tensor, y_test:torch.Tensor):
     model.eval()
     
-    probs = chunked_probs(model, X_test, y_test)
+    probs = chunked_probs(model, X_test)
     probs_cpu = probs.cpu().numpy()
     predictions = probs.argmax(1).cpu().numpy()
     y_true = y_test.cpu().numpy()
