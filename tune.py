@@ -1,4 +1,4 @@
-import csv, json
+import csv
 import torch
 import torch.nn as nn
 import optuna
@@ -10,6 +10,7 @@ from model_layers import ObliviousNATNet
 from config import TrainingConfig, parse_config
 from optuna_objective import objective
 from data import load_data
+from training_utils import atomic_save_json
 
 
 def log_trial_callback(study, trial, config:TrainingConfig):
@@ -23,7 +24,7 @@ def log_trial_callback(study, trial, config:TrainingConfig):
         **trial.params,  # n_trees, lr, weight_decay, batch_size, dropout, label_smoothing
     }
     log_path = config.trial_log
-    file_path = config.trial_log.parent.mkdir(parents=True, exist_ok=True)
+    config.trial_log.parent.mkdir(parents=True, exist_ok=True)
     file_exists = log_path.exists()
     with open(config.trial_log, "a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=row.keys())
@@ -62,6 +63,7 @@ def optuna_study(model:nn.Module, X_train, y_train, X_val, y_val, X_test, y_test
         "model_params": best.user_attrs.get("params"),
         "n_trials":     len(study.trials),
     }
+    atomic_save_json(result, config.results)
     config.model_weights.mkdir(parents=True, exist_ok=True)
     torch.save({
             "best_val":global_best.val_acc,
@@ -71,10 +73,7 @@ def optuna_study(model:nn.Module, X_train, y_train, X_val, y_val, X_test, y_test
         },
         config.model_weights / "optuna_best_covertype.pt"
     )
-
-    with open(config.results, "w") as f:
-        json.dump(result, f, indent=2)
-
+    
     full_log_path = config.trial_log.with_name(f"{config.trial_log.stem}_full.csv")
     study.trials_dataframe().to_csv(full_log_path, index=False)
 

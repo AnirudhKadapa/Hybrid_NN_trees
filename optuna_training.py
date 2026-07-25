@@ -30,6 +30,7 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
     patience = 0
     best_epoch = 0
     best_state = None
+    t0 = time.perf_counter()
 
     print(f"Trial : {trial.number:03d}")
     print(f"Num_trees: {config.n_trees}, Depth: {config.depth}, learning rate: {config.lr}, WD: {config.weight_decay}, LS:{config.label_smoothing}")
@@ -71,7 +72,7 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
             )
 
         scheduler.step()
-
+        elapsed = time.perf_counter()-t0
         avg_loss = (epoch_loss/batch_total).item()
         val_acc = validation_acc(model,X_val,y_val)
 
@@ -86,10 +87,11 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
             patience += 1
 
         print(
-            f"Epoch {epoch + 1:03d} | "
+            f"  Epoch {epoch:03d}/{config.epochs} | "
             f"Loss {avg_loss:.5f} | "
             f"Val {val_acc:.5f} | "
-            f"Best {best_val_accuracy:.5f}"
+            f"Best {best_val_accuracy:.5f} | "
+            f"Epoch time: {round(elapsed,3)} "
             f"  {'★' if improved else ''}"
         )
 
