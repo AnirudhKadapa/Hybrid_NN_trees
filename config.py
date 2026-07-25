@@ -11,12 +11,14 @@ class TrainingConfig:
     lr : float = 3e-3
     batch_size: int = 4096
     label_smoothing:float = 0.0
+    n_trials:int = 50 
 
     cache_dir: Path = Path("./dataset_cache/covertype")
     ckpt:Path = Path("./checkpoints/checkpoint_obnat.pt")
     full_results:Path= Path("./results/full_results.json")
     results:Path = Path("./results/Oblivious_nat_results.json")
     model_weights:Path = Path("./model_weights") 
+    trail_log:Path = Path("./trial_logs/trial_log.csv")
 
     n_classes:int =7
     depth:int = 8
@@ -32,11 +34,13 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--lr", type=float, default=None, help="Model Learning rate")
     parser.add_argument("label_smoothing", type=float, default=None, help="Cross Entropy label Smoothing")
     parser.add_argument("--batch_size", type=int, default=None, help="Size of each batch processed")
+    parser.add_argument("--n_trials", type=int, default=None,help="Number of optuna Trials")
     parser.add_argument("--cache_dir", default=None, help="Directory of your file location")
     parser.add_argument("--ckpt", default=None, help="Checkpoint path for last file")
     parser.add_argument("--full_results", default=None, help="all results saved here")
     parser.add_argument("--results", default=None, help="saves json results for the training")
     parser.add_argument("--model_weights", default=None, help="model_weights save location")
+    parser.add_argument("--trial_log", default=None, help="Trial log location")
     parser.add_argument("--n_classes",type=int, default=None, help="Number of classes of dataset")
     parser.add_argument("--depth", type=int, default=None, help="Tree depth")
     parser.add_argument("--n_trees", type=int, default=None, help="Number of trees per layer")

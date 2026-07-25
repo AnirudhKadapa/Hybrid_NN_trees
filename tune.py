@@ -1,0 +1,94 @@
+import csv, json
+import torch
+import torch.nn as nn
+import optuna
+from optuna.samplers import TPESampler
+from optuna.pruners import HyperbandPruner
+from pathlib import Path
+from optuna_util import GlobalBest
+from model_layers import ObliviousNATNet
+from config import TrainingConfig, parse_config
+from optuna_objective import objective
+from data import load_data
+
+
+def log_trial_callback(study, trial, config:TrainingConfig):
+    row = {
+        "trial_number":  trial.number,
+        "state":         trial.state.name,
+        "value_val_acc": trial.value,
+        "test_acc":      trial.user_attrs.get("test_acc"),
+        "test_auc":      trial.user_attrs.get("test_auc"),
+        "params_count":  trial.user_attrs.get("params"),
+        **trial.params,  # n_trees, lr, weight_decay, batch_size, dropout, label_smoothing
+    }
+    file_exists = config.trail_log.mkdir(parents=True, exist_ok=True)
+    with open(config.trail_log, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=row.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+
+def optuna_study(model:nn.Module, X_train, y_train, X_val, y_val, X_test, y_test, device, config:TrainingConfig):
+    global_best = GlobalBest()
+
+    study = optuna.create_study(
+        direction="maximize",
+        sampler=TPESampler(seed=42, multivariate=True),
+        pruner=HyperbandPruner(min_resource=5, max_resource=config.epochs, reduction_factor=3)
+    )
+    study.optimize(
+        lambda trial:objective(model, X_train, y_train, X_val, y_val, X_test, y_test, device, config, trial, global_best),
+        n_trials= config.n_trials,
+        gc_after_trial=True,
+        callbacks=[log_trial_callback]
+    )
+
+    best = study.best_trial
+
+    result = {
+        "best_val_acc": best.value,
+        "best_params":  best.params,
+        "test_acc":     best.user_attrs.get("test_acc"),
+        "test_auc":     best.user_attrs.get("test_auc"),
+        "model_params": best.user_attrs.get("params"),
+        "n_trials":     len(study.trials),
+    }
+    config.model_weights.mkdir(parents=True, exist_ok=True)
+    torch.save({
+            "best_val":global_best.val_acc,
+            "best_trail":global_best.trial_number,
+            "best_state": global_best.state,
+            "results":result        
+        },
+        config.model_weights / "optuna_best_covertype.pt"
+    )
+
+    with open(config.results, "w") as f:
+        json.dump(result, f, indent=2)
+
+    full_log_path = config.trials_log.replace(".csv", "_full.csv")
+    study.trials_dataframe().to_csv(full_log_path, index=False)
+
+if __name__=="__main__":
+    torch.manual_seed(42)
+    torch.set_float32_matmul_precision('high')
+    torch._dynamo.config.cache_size_limit = 64
+    config = parse_config()
+    X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.cache_dir)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(device)
+    print()
+    X_train = X_train.to(device)
+    y_train = y_train.to(device)
+    X_val = X_val.to(device)
+    y_val = y_val.to(device)
+    X_test = X_test.to(device)
+    y_test = y_test.to(device)
+
+    input_dim = X_train.shape[1]
+
+    model = ObliviousNATNet(input_dim, config.n_classes, config.depth, config.n_trees)
+
+    optuna_study(model,X_train, y_train, X_val, y_val, X_test, y_test, device, config)
+    

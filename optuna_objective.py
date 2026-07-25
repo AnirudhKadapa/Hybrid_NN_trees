@@ -5,11 +5,11 @@ from config import TrainingConfig, trial_config
 from model_layers import ObliviousNATNet
 from optuna_training import optuna_training
 from optuna_util import GlobalBest
+from test_model import test_models
 
 
-def objective(model:nn.Module, X_train:torch.Tensor, y_train, X_val, y_val, device, base_config:TrainingConfig, trial:optuna.Trial, global_best:GlobalBest):
+def objective(model:nn.Module, X_train:torch.Tensor, y_train, X_val, y_val, X_test, y_test, device, base_config:TrainingConfig, trial:optuna.Trial, global_best:GlobalBest):
     config = trial_config(trial, base_config)
-    model = ObliviousNATNet(X_train.size(0), config.n_classes, config.depth, config.n_trees)
 
     try: 
         t_bestval, t_beststate, t_bestepoch = optuna_training(model, X_train, y_train, X_val, y_val, device, config, trial)
@@ -21,9 +21,14 @@ def objective(model:nn.Module, X_train:torch.Tensor, y_train, X_val, y_val, devi
             trail_number= trial.number,
             best_epoch=t_bestepoch
         )
+        trails_results = test_models(model, X_test, y_test)
+        print()
+        print(f"Obtained results for Trial {trial.number} \n")
+        print(f"Test Acc: {trails_results["test_acc"]} \n Test Auc: {trails_results['test_auc']} \n F1 score: {trails_results['test_f1']}")
 
         if update_best_results:
             print(f"New global best Obtained at Trail: {trial.number}, Best Val: {t_bestval}")
+
 
         return float(t_bestval)
     

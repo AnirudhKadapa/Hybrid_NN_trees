@@ -4,8 +4,8 @@ import torch.nn as nn
 from torch.optim import AdamW, lr_scheduler
 from torch.amp import GradScaler
 import optuna
-from config import trial_config, parse_config, TrainingConfig
-from training_utils import get_parameters, atomic_save_json
+from config import TrainingConfig
+from training_utils import get_parameters
 from evals import validation_acc
 
 
