@@ -20,7 +20,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
     optimizer = AdamW(model_params, lr=config.lr, weight_decay= config.weight_decay, fused=(device=="cuda"))
     scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs)
     scaler = GradScaler(enabled=(device=="cuda"))
-    loss_criterion = nn.CrossEntropyLoss()
+    loss_criterion = nn.CrossEntropyLoss(label_smoothing=config.label_smoothing)
 
     N = X_train.size(0)
     N_new = N - (N % config.batch_size)

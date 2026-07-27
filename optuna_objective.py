@@ -5,7 +5,7 @@ from config import TrainingConfig, trial_config
 from model_layers import ObliviousNATNet
 from optuna_training import optuna_training
 from optuna_util import GlobalBest
-from test_model import test_models
+
 
 
 def objective(model:nn.Module, X_train:torch.Tensor, y_train, X_val, y_val, X_test, y_test, device, base_config:TrainingConfig, trial:optuna.Trial, global_best:GlobalBest):

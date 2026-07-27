@@ -91,7 +91,7 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
             f"Loss {avg_loss:.5f} | "
             f"Val {val_acc:.5f} | "
             f"Best {best_val_accuracy:.5f} | "
-            f"Epoch time: {round(elapsed,3)} "
+            f"Epoch time: {elapsed:6.3f} "
             f"  {'★' if improved else ''}"
         )
 
