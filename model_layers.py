@@ -7,7 +7,7 @@ from utility import build_level_masks, smooth_step, build_paths
 
 # oblivious NAT -Has same weight at the same level in a singular tree and different across parallel trees
 class ObliviousSharedLayer(nn.Module):
-    def __init__(self,input_dim, n_trees, depth):
+    def __init__(self,input_dim, n_trees, depth, dropout: float = 0.0):
         super().__init__()
         self.depth = depth
         self.num_leaves = 2**depth
@@ -17,7 +17,9 @@ class ObliviousSharedLayer(nn.Module):
         self.bias = nn.Parameter(torch.zeros(n_trees,depth))
 
         self.leaf_weights = nn.Parameter(torch.randn(n_trees, self.num_leaves)*0.01)
-
+        # self.bn      = nn.BatchNorm1d(n_trees)
+        self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
+        
         left_mask, right_mask = build_level_masks(depth)   # (depth, num_leaves)
         combined_mask = torch.cat([left_mask, right_mask], dim=0)   # (2*depth, num_leaves)
         self.register_buffer("combined_mask", combined_mask)
@@ -39,7 +41,7 @@ class ObliviousSharedLayer(nn.Module):
             log_probs_leaves = torch.einsum("btd,dl->btl", log_probs_cat, self.combined_mask) # (B, T, leaves)
 
             leaf_probs = torch.exp(log_probs_leaves)
-            return leaf_probs
+            return self.dropout(leaf_probs)
 
     
     @torch.no_grad()
@@ -68,11 +70,11 @@ class ObliviousSharedLayer(nn.Module):
         return leaf_logits
 
 class ObliviousNATNet(nn.Module):
-    def __init__(self,input_dim, output_dim, depth, n_trees):
+    def __init__(self,input_dim, output_dim, depth, n_trees, dropout:float = 0.0):
         super().__init__()
-        self.layer1 = ObliviousSharedLayer(input_dim,n_trees,depth)
+        self.layer1 = ObliviousSharedLayer(input_dim,n_trees,depth, dropout)
         self.layernorm = nn.LayerNorm(n_trees)
-        self.layer2 = ObliviousSharedLayer(n_trees,n_trees,depth)
+        self.layer2 = ObliviousSharedLayer(n_trees,n_trees,depth, dropout)
         self.linear = nn.Linear(n_trees,output_dim)
     
     def forward(self,x:torch.tensor) -> torch.tensor:
@@ -158,4 +160,5 @@ class FullyIndependentNATLayer(nn.Module):
 if __name__=="__main__":
     model = ObliviousNATNet(input_dim=10,output_dim=3,depth=2,n_trees=3)
     for name, parameters in model.named_parameters():
-        print(f"{name}")
+        if name.endswith('bn.weight') or name.endswith('bias') or name.startswith('layernorm'):
+            print(f"{name}")

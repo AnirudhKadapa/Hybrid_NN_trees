@@ -8,13 +8,17 @@ from model_layers import ObliviousNATNet
 from train import training
 from training_utils import atomic_save_json
 from evals import chunked_probs
-
+from test_params import params
+from dataclasses import replace
 
 def main():
     torch.manual_seed(42)
     torch.set_float32_matmul_precision('high')
     torch._dynamo.config.cache_size_limit = 64
-    config = parse_config()
+    base_config = parse_config()
+    best_params = params()
+    config = replace(base_config, **best_params)
+
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.cache_dir)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(device)
@@ -29,7 +33,7 @@ def main():
     input_dim = X_train.shape[1]
 
     
-    model = ObliviousNATNet(input_dim, config.n_classes, config.depth, config.n_trees)
+    model = ObliviousNATNet(input_dim, config.n_classes, config.depth, config.n_trees, config.dropout)
 
     t_start = time.perf_counter()
     history, best_val_accuracy, best_state = training(model,X_train,X_val,y_train,y_val, device, config)
@@ -37,17 +41,17 @@ def main():
 
     config.model_weights.mkdir(parents=True, exist_ok=True)
 
-    if best_state is not None:
+    if best_state is None:
         raise RuntimeError(
             "Training ended before producing a valid best model state"
         )
-
+    torch.save(best_state,config.model_weights/"obnat_covertype.pt")
     model.load_state_dict(best_state)
-    torch.save(best_state,config.model_weights/"/obnat_covertype.pt")
+    
 
     model.eval()
 
-    probs = chunked_probs(model, X_test, y_test)
+    probs = chunked_probs(model, X_test)
     probs_cpu = probs.cpu().numpy()
     predictions = probs.argmax(1).cpu().numpy()
     y_true = y_test.cpu().numpy()

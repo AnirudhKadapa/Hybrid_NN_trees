@@ -10,7 +10,7 @@ def get_parameters(model:nn.Module):
     for name, parameter in model.named_parameters():
         if not parameter.requires_grad:
             continue
-        if name.endswith("bias") or name.startswith("layernorm"):
+        if name.endswith("bias") or name.endswith('bn.weight') or name.startswith("layernorm"):
             no_decay.append(parameter)
         else:
             decay.append(parameter)

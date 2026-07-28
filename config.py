@@ -12,6 +12,7 @@ class TrainingConfig:
     batch_size: int = 4096
     label_smoothing:float = 0.0
     n_trials:int = 50 
+    dropout:float = 0.0
 
     study_name="Oblivious_nat_Covertype"
     cache_dir: Path = Path("./dataset_cache/covertype")
@@ -35,6 +36,7 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--lr", type=float, default=None, help="Model Learning rate")
     parser.add_argument("--label_smoothing", type=float, default=None, help="Cross Entropy label Smoothing")
     parser.add_argument("--batch_size", type=int, default=None, help="Size of each batch processed")
+    parser.add_argument("--dropout", type=float, default=None, help="Dropout Value")
     parser.add_argument("--n_trials", type=int, default=None,help="Number of optuna Trials")
     parser.add_argument("--study_name",  default=None, help="optuna study name")
     parser.add_argument("--cache_dir", default=None, help="Directory of your file location")
@@ -74,6 +76,7 @@ def trial_config(trial: optuna.Trial, base_config:TrainingConfig) -> TrainingCon
     batch_size = trial.suggest_categorical("batch_size",[4096])
     depth = trial.suggest_categorical("depth",[4,6,8,10])
     n_trees = trial.suggest_categorical("n_trees",[64,96,112,120,128,136,144,152,192])
+    dropout = trial.suggest_float("dropout",0.0,0.3)
     label_smoothing = trial.suggest_float("label_smoothing",0.0,0.1)
     
     return replace(
