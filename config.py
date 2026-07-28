@@ -86,6 +86,7 @@ def trial_config(trial: optuna.Trial, base_config:TrainingConfig) -> TrainingCon
         batch_size = batch_size,
         depth = depth,
         n_trees = n_trees,
+        dropout = dropout,
         label_smoothing = label_smoothing   
     )
     

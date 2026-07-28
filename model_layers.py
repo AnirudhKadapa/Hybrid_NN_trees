@@ -41,7 +41,7 @@ class ObliviousSharedLayer(nn.Module):
             log_probs_leaves = torch.einsum("btd,dl->btl", log_probs_cat, self.combined_mask) # (B, T, leaves)
 
             leaf_probs = torch.exp(log_probs_leaves)
-            return self.dropout(leaf_probs)
+            return leaf_probs
 
     
     @torch.no_grad()
@@ -67,7 +67,7 @@ class ObliviousSharedLayer(nn.Module):
     def forward(self,x):
         leaf_prob_paths = self._leaf_prob(x)
         leaf_logits = torch.einsum("btl,tl->bt",leaf_prob_paths,self.leaf_weights)
-        return leaf_logits
+        return self.dropout(leaf_logits)
 
 class ObliviousNATNet(nn.Module):
     def __init__(self,input_dim, output_dim, depth, n_trees, dropout:float = 0.0):
