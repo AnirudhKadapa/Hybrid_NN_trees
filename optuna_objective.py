@@ -7,9 +7,14 @@ from optuna_training import optuna_training
 from optuna_util import GlobalBest
 
 
-
-def objective(model:nn.Module, X_train:torch.Tensor, y_train, X_val, y_val, X_test, y_test, device, base_config:TrainingConfig, trial:optuna.Trial, global_best:GlobalBest):
+def objective(input_dim:int, X_train:torch.Tensor, y_train, X_val, y_val, device, base_config:TrainingConfig, trial:optuna.Trial, global_best:GlobalBest):
     config = trial_config(trial, base_config)
+
+    model = ObliviousNATNet(input_dim=input_dim, output_dim=config.n_classes, depth=config.depth, n_trees=config.n_trees, dropout=config.dropout)
+
+    parameter_count = sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
+
+    trial.set_user_attr("params", parameter_count)
 
     try: 
         t_bestval, t_beststate, t_bestepoch = optuna_training(model, X_train, y_train, X_val, y_val, device, config, trial)

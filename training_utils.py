@@ -27,8 +27,7 @@ def atomic_save(checkpoint:dict, path:Path):
     os.replace(temporary_path, path)
 
 
-
-def verify_checkpoint(checkpoint:dict, input_dim:int, n_trees:int, depth:int, n_classes:int, batch_size:int, epochs:int):
+def verify_checkpoint(checkpoint:dict, input_dim:int, n_trees:int, depth:int, n_classes:int, batch_size:int, epochs:int, lr:int, label_sm:float, wd:float)->bool:
     saved_config = checkpoint.get("config",{})
     current_config = {
         "input_dim":input_dim,
@@ -36,21 +35,23 @@ def verify_checkpoint(checkpoint:dict, input_dim:int, n_trees:int, depth:int, n_
         "depth":depth,
         "n_classes":n_classes,
         "batch_size": batch_size,
-        "epochs":epochs
+        "epochs":epochs,
+        "lr":lr,
+        "label_smoothing": label_sm,
+        "weight_decay":wd
     }
 
     for name, value in current_config.items():
         saved_value = saved_config.get(name)
 
         if saved_value is None:
-            raise ValueError(
-                f"Current Config has no values for {name}"
-            )
+            print(f"Checkpoint Config has no values for {name}")
+            return False
 
         if saved_value != value:
-            raise ValueError(
-                f"Checkpoint value for {name}:{saved_value} mismatch with current entered {name}:{value}"
-            )
+            print(f"Checkpoint value for {name}:{saved_value} mismatch with current entered {name}:{value}")
+            return False
+    return True
 
 def atomic_save_json(history, path:Path):
     path.parent.mkdir(parents=True,exist_ok=True)

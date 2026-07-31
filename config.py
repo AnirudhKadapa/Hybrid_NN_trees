@@ -1,7 +1,14 @@
-from dataclasses import dataclass, replace
+import os
+from dataclasses import dataclass, replace, field
 from pathlib import Path
 import argparse
 import optuna
+
+
+def last_completed(path:Path, count):
+    file = path / f'{count}.runs'/'checkpoint_completed.pt'
+    return file.exists()
+
 
 @dataclass
 class TrainingConfig:
@@ -14,19 +21,37 @@ class TrainingConfig:
     n_trials:int = 50 
     dropout:float = 0.0
 
-    study_name="Oblivious_nat_Covertype"
+    study_name:str = "Oblivious_nat_Covertype"
     cache_dir: Path = Path("./dataset_cache/covertype")
-    ckpt:Path = Path("./checkpoints/checkpoint_obnat.pt")
-    full_results:Path= Path("./results/full_results.json")
-    results:Path = Path("./results/Oblivious_nat_results.json")
-    model_weights:Path = Path("./model_weights") 
-    trial_log:Path = Path("./trial_logs/trial_log.csv")
+
+    run_root: Path = Path("./runs")
+    ckpt:Path = field(init=False)
+    # full_results:Path= Path("./runs/results/full_results.json")    Need to Fix full_results.json in tune.py 
+    results:Path = field(init=False)
+    model_weights:Path = field(init=False) 
+    # trial_log:Path = Path("./runs/trial_logs/trial_log.csv")   Need to Fix trial_log.csv in tune.py
 
     n_classes:int =7
     depth:int = 8
     n_trees:int = 144
 
     checkpoint_save:int = 10
+
+    def __post_init__(self)-> None:
+        self.run_root.mkdir(parents=True, exist_ok=True)
+        count = len(os.listdir(self.run_root))
+        run_dir = None
+        if count > 0:
+            if last_completed(self.run_root, count):
+                count +=1
+            run_dir = self.run_root/Path(f'{count}.runs')
+        else:
+            run_dir = self.run_root/f'1.runs'
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        self.ckpt =  run_dir/'checkpoints'
+        self.results = run_dir/'results'
+        self.model_weights = run_dir/'model_weights'
 
 def parse_config() -> TrainingConfig:
     parser = argparse.ArgumentParser(description="ObnatNet")
@@ -39,6 +64,7 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--dropout", type=float, default=None, help="Dropout Value")
     parser.add_argument("--n_trials", type=int, default=None,help="Number of optuna Trials")
     parser.add_argument("--study_name",  default=None, help="optuna study name")
+    parser.add_argument("--run_root", default=None, help="root directory for all the run saves")
     parser.add_argument("--cache_dir", default=None, help="Directory of your file location")
     parser.add_argument("--ckpt", default=None, help="Checkpoint path for last file")
     parser.add_argument("--full_results", default=None, help="all results saved here")
@@ -51,7 +77,6 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--checkpoint_save",type=int, default=None, help="Save last after every 10 epochs")
     args = parser.parse_args()
 
-    config = TrainingConfig()
     path_fields = {
         "cache_dir",
         "ckpt",
@@ -67,7 +92,7 @@ def parse_config() -> TrainingConfig:
         if value is not None
     }
 
-    return replace(config, **overrides)
+    return TrainingConfig(**overrides)
 
 
 def trial_config(trial: optuna.Trial, base_config:TrainingConfig) -> TrainingConfig:

@@ -32,9 +32,9 @@ def log_trial_callback(study, trial, config:TrainingConfig):
             writer.writeheader()
         writer.writerow(row)
 
-def optuna_study(model:nn.Module, X_train, y_train, X_val, y_val, X_test, y_test, device, config:TrainingConfig):
+def optuna_study(model:nn.Module, input_dim, X_train, y_train, X_val, y_val, X_test, y_test, device, config:TrainingConfig):
     global_best = GlobalBest()
-
+    
     study = optuna.create_study(
         study_name=config.study_name,
         direction="maximize",
@@ -42,7 +42,7 @@ def optuna_study(model:nn.Module, X_train, y_train, X_val, y_val, X_test, y_test
         pruner=HyperbandPruner(min_resource=5, max_resource=config.epochs, reduction_factor=3)
     )
     study.optimize(
-        lambda trial:objective(model, X_train, y_train, X_val, y_val, X_test, y_test, device, config, trial, global_best),
+        lambda trial:objective(model, input_dim, X_train, y_train, X_val, y_val, X_test, y_test, device, config, trial, global_best),
         n_trials= config.n_trials,
         gc_after_trial=True,
         callbacks=[    
@@ -95,7 +95,7 @@ if __name__=="__main__":
 
     input_dim = X_train.shape[1]
 
-    model = ObliviousNATNet(input_dim, config.n_classes, config.depth, config.n_trees)
+    model = ObliviousNATNet(input_dim, config.n_classes, config.depth, config.n_trees, config.dropout)
 
     optuna_study(model,X_train, y_train, X_val, y_val, X_test, y_test, device, config)
 

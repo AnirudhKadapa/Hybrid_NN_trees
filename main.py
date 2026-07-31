@@ -74,8 +74,9 @@ def main():
         "train_time": round(elapsed, 3),
         "history":      history,
     }
-
-    atomic_save_json(results, config.results)
+    file = 'obnat_results.json'
+    file_path = config.results/file
+    atomic_save_json(results, file_path)
 
     print("-"*70)
     print("Oblivious Nat Net: Results")

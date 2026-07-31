@@ -29,13 +29,17 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
     patience = 0
     start_epoch = 1
     history = []
-    
 
-    ckpt = config.ckpt    
+    
+    checkpoint_file = 'checkpoint.pt'
+    ckpt = config.ckpt / checkpoint_file
+    checkpoint_valid = False
+    checkpoint = None
     if ckpt.exists():
         checkpoint = torch.load(ckpt, map_location="cpu",weights_only=False)
-        verify_checkpoint(checkpoint, X_train.shape[1], config.n_trees, config.depth, config.n_classes, config.batch_size, config.epochs)        
+        checkpoint_valid = verify_checkpoint(checkpoint, X_train.shape[1], config.n_trees, config.depth, config.n_classes, config.batch_size, config.epochs, config.lr, config.label_smoothing, config.weight_decay)        
 
+    if checkpoint_valid:
         last_completed_epoch = checkpoint["last_epoch"]
         model_raw.load_state_dict(checkpoint["last_model_state"])
         scheduler.load_state_dict(checkpoint["last_scheduler_state"])
@@ -122,7 +126,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
         should_checkpoint = improved or (epoch % checkpoint_every == 0) or (epoch == config.epochs)
  
         if should_checkpoint:
-            last_model_state = {name:state_value.detach().cpu().clone() for name, state_value in model_raw.state_dict().items()}
+            last_model_state = {name:state_value.clone() for name, state_value in model_raw.state_dict().items()}
 
             checkpoint = {
                 "last_epoch":epoch,
@@ -146,12 +150,13 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
                     "batch_size": config.batch_size,
                     "epochs": config.epochs,
                     "lr": config.lr,
+                    "label_smoothing":config.label_smoothing,
                     "weight_decay": config.weight_decay,
                     "patience": config.patience,
                 },
             }
 
-            atomic_save(checkpoint, config.ckpt)
+            atomic_save(checkpoint, ckpt)
 
         if improved or (epoch%5==0):
             elapsed = time.perf_counter() - t0
@@ -170,11 +175,13 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
         stop_reason="max_epochs"
 
     if ckpt.exists():
-        final_checkpoint = torch.load(ckpt, map_location="cpu",weights_only=False)
-        if stop_reason=="max_epochs" or stop_reason=="early_stopping":
+        final_checkpoint = checkpoint
+        if stop_reason=="max_epochs" or stop_reason=="early_stopping" or stop_reason=="numerical_instability":
             final_checkpoint["completed"] = True
         final_checkpoint["stop_reason"] = stop_reason
-        atomic_save(final_checkpoint,config.ckpt)
+        if final_checkpoint["completed"]:
+            atomic_save(final_checkpoint,ckpt)
+            ckpt.rename(config.ckpt/'checkpoint_completed.pt')
     
     if device=="cuda":
         torch.cuda.synchronize()
