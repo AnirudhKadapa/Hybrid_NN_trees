@@ -10,6 +10,7 @@ def last_completed(path:Path, count):
     return file.exists()
 
 
+
 @dataclass
 class TrainingConfig:
     epochs: int = 150
