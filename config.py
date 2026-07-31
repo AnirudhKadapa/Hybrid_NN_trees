@@ -6,7 +6,7 @@ import optuna
 
 
 def last_completed(path:Path, count):
-    file = path / f'{count}.runs'/'checkpoint_completed.pt'
+    file = path / f'{count}.runs/checkpoint/checkpoint_completed.pt'
     return file.exists()
 
 

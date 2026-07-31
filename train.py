@@ -63,6 +63,8 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
 
     t0 = time.perf_counter()
     stop_reason = None
+    print()
+    print(f"Num_trees: {config.n_trees}, Depth: {config.depth}, learning rate: {config.lr}, WD: {config.weight_decay}, LS:{config.label_smoothing}")
 
     for epoch in range(start_epoch,config.epochs+1):
         model.train()
@@ -162,7 +164,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
             elapsed = time.perf_counter() - t0
             print(f"  ep{epoch:4d}/{config.epochs}  loss={avg_loss:.4f}  "
                   f"val_acc={val_acc:.4f}  best={best_val_accuracy:.4f}"
-                  f"  elapsed time = {elapsed:6.3f}"
+                  f"  elapsed time = {elapsed:8.3f}"
                   f"  {'★' if improved else ''}")
 
 
