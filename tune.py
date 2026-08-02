@@ -74,7 +74,8 @@ if __name__=="__main__":
     torch.set_float32_matmul_precision('high')
     torch._dynamo.config.cache_size_limit = 64
     config = parse_config()
-    X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.cache_dir)
+    filename = f"{config.dataset}_train_test_val.pt"
+    X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.cache_dir, filename)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(device)
     print()
