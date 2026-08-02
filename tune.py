@@ -63,7 +63,7 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
         "n_trials":     len(study.trials),
     }
     result_file = f'{config.dataset}_result.json'
-    atomic_save_json(result, config.results/result_file)
+    atomic_save_json(result, Path(config.results/result_file))
     config.model_weights.mkdir(parents=True, exist_ok=True)
     torch.save({"best_state": global_best.state},config.model_weights / f"optuna_best_{config.dataset}.pt")
 
