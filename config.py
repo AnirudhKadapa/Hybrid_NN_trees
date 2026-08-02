@@ -54,7 +54,7 @@ class TrainingConfig:
         self.ckpt =  run_dir/'checkpoints'
         self.results = run_dir/'results'
         self.model_weights = run_dir/'model_weights'
-        self.trail_log = run_dir/'tune_results'
+        self.trial_log = run_dir/'tune_results'
 
 def parse_config() -> TrainingConfig:
     parser = argparse.ArgumentParser(description="ObnatNet")
