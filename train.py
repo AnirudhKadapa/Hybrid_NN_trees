@@ -164,8 +164,8 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
 
         if improved or (epoch%5==0):
             elapsed = time.perf_counter() - t0
-            print(f"  ep{epoch:4d}/{config.epochs}  loss={avg_loss:.4f}  "
-                  f"val_acc={val_acc:.4f}  best={best_val_accuracy:.4f}"
+            print(f"  ep{epoch:4d}/{config.epochs}  loss={avg_loss:.4f} "
+                  f"  val_acc={val_acc:.4f}  val_loss={val_loss:.4f}  best={best_val_accuracy:.4f}"
                   f"  elapsed time = {elapsed:8.3f}"
                   f"  {'★' if improved else ''}")
 

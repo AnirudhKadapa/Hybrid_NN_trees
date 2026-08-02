@@ -32,7 +32,7 @@ class ObliviousSharedLayer(nn.Module):
             b32 = self.bias.float()
             node_logits = torch.einsum("bi,tdi -> btd",x32,node_weights) + b32.unsqueeze(0)
             eps = 1e-6
-            probs = smooth_step(node_logits).clamp(eps,1.0-eps)
+            probs = torch.sigmoid(node_logits).clamp(eps,1.0-eps)
  
             log_probs_left = torch.log(probs)
             log_probs_right = torch.log(1.0-probs)

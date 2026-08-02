@@ -58,9 +58,9 @@ def process_helena(dataset: Bunch, cache_dir:Path):
     X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=1 / 9, random_state=42, shuffle=True,stratify=y_train_val)
 
     scaler = StandardScaler()
-    X_train[:, :10] = scaler.fit_transform(X_train[:, :10]).astype(np.float32)
-    X_val[:, :10] = scaler.transform(X_val[:,:10]).astype(np.float32)
-    X_test[:,:10] = scaler.transform(X_test[:,:10]).astype(np.float32)
+    X_train = scaler.fit_transform(X_train).astype(np.float32)
+    X_val = scaler.transform(X_val).astype(np.float32)
+    X_test = scaler.transform(X_test).astype(np.float32)
 
     file_path = cache_dir
     file_path.mkdir(parents=True,exist_ok=True)
