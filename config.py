@@ -24,7 +24,7 @@ class TrainingConfig:
 
     dataset:str = 'Covertype'
     study_name:str = "Oblivious_nat"
-    cache_dir: Path = Path("./dataset_cache/covertype")
+    cache_dir: Path = field(init=False)
 
     run_root: Path = Path("./runs")
     ckpt:Path = field(init=False) 
@@ -39,6 +39,7 @@ class TrainingConfig:
     checkpoint_save:int = 10
 
     def __post_init__(self)-> None:
+        self.cache_dir = Path("./dataset_cache/") / f"{self.dataset}" 
         self.run_root.mkdir(parents=True, exist_ok=True)
         count = len(os.listdir(self.run_root))
         run_dir = None
