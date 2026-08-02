@@ -41,16 +41,16 @@ class TrainingConfig:
     def __post_init__(self)-> None:
         self.cache_dir = Path("./dataset_cache/") / f"{self.dataset}" 
         self.run_root.mkdir(parents=True, exist_ok=True)
-        count = len(os.listdir(self.run_root))
-        run_dir = None
-        if count > 0:
-            if last_completed(self.run_root, count):
-                count +=1
-            run_dir = self.run_root/Path(f'{count}.runs')
-        else:
-            run_dir = self.run_root/f'1.runs'
-        run_dir.mkdir(parents=True, exist_ok=True)
-
+        # count = len(os.listdir(self.run_root))
+        # run_dir = None
+        # if count > 0:
+        #     if last_completed(self.run_root, count):
+        #         count +=1
+        #     run_dir = self.run_root/Path(f'{count}.runs')
+        # else:
+        #     run_dir = self.run_root/f'1.runs'
+        # run_dir.mkdir(parents=True, exist_ok=True)
+        run_dir = self.run_root / f"{self.dataset}"
         self.ckpt =  run_dir/'checkpoints'
         self.results = run_dir/'results'
         self.model_weights = run_dir/'model_weights'
