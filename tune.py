@@ -62,11 +62,13 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
         "model_params": best.user_attrs.get("params"),
         "n_trials":     len(study.trials),
     }
-    atomic_save_json(result, config.results)
+    result_file = f'{config.dataset}_result.json'
+    atomic_save_json(result, config.results/result_file)
     config.model_weights.mkdir(parents=True, exist_ok=True)
     torch.save({"best_state": global_best.state},config.model_weights / f"optuna_best_{config.dataset}.pt")
-    
-    full_log_path = config.trial_log.with_name(f"{config.trial_log.stem}_full.csv")
+
+    log_results = config.trial_log / f'{config.dataset}.csv'
+    full_log_path = log_results.with_name(f"{log_results.stem}_full.csv")
     study.trials_dataframe().to_csv(full_log_path, index=False)
 
 if __name__=="__main__":
