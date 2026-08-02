@@ -22,8 +22,8 @@ def log_trial_callback(study, trial, config:TrainingConfig):
         "params_count":  trial.user_attrs.get("params"),
         **trial.params,  # n_trees, lr, weight_decay, batch_size, dropout, label_smoothing
     }
+    config.trial_log.mkdir(parents=True, exist_ok=True)
     log_path = Path(config.trial_log / f'{config.dataset}_result.csv')
-    log_path.parent.mkdir(parents=True, exist_ok=True)
     file_exists = log_path.exists()
     with open(log_path, "a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=row.keys())
