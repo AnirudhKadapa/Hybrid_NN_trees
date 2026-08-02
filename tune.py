@@ -23,9 +23,9 @@ def log_trial_callback(study, trial, config:TrainingConfig):
         **trial.params,  # n_trees, lr, weight_decay, batch_size, dropout, label_smoothing
     }
     log_path = Path(config.trial_log / f'{config.dataset}_result.csv')
-    config.trial_log.parent.mkdir(parents=True, exist_ok=True)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     file_exists = log_path.exists()
-    with open(config.trial_log, "a", newline="") as f:
+    with open(log_path, "a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=row.keys())
         if not file_exists:
             writer.writeheader()
@@ -68,7 +68,6 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
     torch.save({"best_state": global_best.state},config.model_weights / f"optuna_best_{config.dataset}.pt")
 
     log_results = Path(config.trial_log / f'{config.dataset}.csv')
-    log_results.parent.mkdir(parents=True, exist_ok=True)
     full_log_path = log_results.with_name(f"{log_results.stem}_full.csv")
     study.trials_dataframe().to_csv(full_log_path, index=False)
 
