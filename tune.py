@@ -6,7 +6,6 @@ from optuna.samplers import TPESampler
 from optuna.pruners import HyperbandPruner
 from pathlib import Path
 from optuna_util import GlobalBest
-from model_layers import ObliviousNATNet
 from config import TrainingConfig, parse_config
 from optuna_objective import objective
 from data import load_data
@@ -65,7 +64,7 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
     }
     atomic_save_json(result, config.results)
     config.model_weights.mkdir(parents=True, exist_ok=True)
-    torch.save({"best_state": global_best.state},config.model_weights / "optuna_best_covertype.pt")
+    torch.save({"best_state": global_best.state},config.model_weights / f"optuna_best_{config.dataset}.pt")
     
     full_log_path = config.trial_log.with_name(f"{config.trial_log.stem}_full.csv")
     study.trials_dataframe().to_csv(full_log_path, index=False)

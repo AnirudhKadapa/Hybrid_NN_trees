@@ -1,6 +1,5 @@
 import optuna
 import torch
-import torch.nn as nn
 from config import TrainingConfig, trial_config
 from model_layers import ObliviousNATNet
 from optuna_training import optuna_training
