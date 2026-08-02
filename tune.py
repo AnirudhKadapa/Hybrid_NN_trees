@@ -41,7 +41,7 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
         pruner=HyperbandPruner(min_resource=5, max_resource=config.epochs, reduction_factor=3)
     )
     study.optimize(
-        lambda trial:objective(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, device, config, trial, global_best),
+        lambda trial:objective(input_dim, X_train, y_train, X_val, y_val, device, config, trial, global_best),
         n_trials= config.n_trials,
         gc_after_trial=True,
         callbacks=[    
