@@ -98,8 +98,7 @@ def load_helena_data(cache_dir:Path):
         data["y_test"]
     )
 
-def load_data(cache_dir: Path):
-    filename = "covertype_train_test_val.pt"
+def load_data(cache_dir: Path, filename):
     file = Path(cache_dir/filename).resolve() 
 
     if not file.exists():
