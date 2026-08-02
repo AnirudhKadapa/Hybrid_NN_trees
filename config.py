@@ -22,15 +22,14 @@ class TrainingConfig:
     n_trials:int = 50 
     dropout:float = 0.0
 
-    study_name:str = "Oblivious_nat_Covertype"
+    study_name:str = "Oblivious_nat"
     cache_dir: Path = Path("./dataset_cache/covertype")
 
     run_root: Path = Path("./runs")
-    ckpt:Path = field(init=False)
-    # full_results:Path= Path("./runs/results/full_results.json")    Need to Fix full_results.json in tune.py 
+    ckpt:Path = field(init=False) 
     results:Path = field(init=False)
     model_weights:Path = field(init=False) 
-    # trial_log:Path = Path("./runs/trial_logs/trial_log.csv")   Need to Fix trial_log.csv in tune.py
+    trial_log:Path = field(init=False)
 
     n_classes:int =7
     depth:int = 8
@@ -53,6 +52,7 @@ class TrainingConfig:
         self.ckpt =  run_dir/'checkpoints'
         self.results = run_dir/'results'
         self.model_weights = run_dir/'model_weights'
+        self.trail_log = run_dir/'tune_results'
 
 def parse_config() -> TrainingConfig:
     parser = argparse.ArgumentParser(description="ObnatNet")

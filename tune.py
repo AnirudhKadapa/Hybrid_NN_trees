@@ -32,7 +32,7 @@ def log_trial_callback(study, trial, config:TrainingConfig):
             writer.writeheader()
         writer.writerow(row)
 
-def optuna_study(model:nn.Module, input_dim, X_train, y_train, X_val, y_val, X_test, y_test, device, config:TrainingConfig):
+def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, device, config:TrainingConfig):
     global_best = GlobalBest()
     
     study = optuna.create_study(
@@ -42,7 +42,7 @@ def optuna_study(model:nn.Module, input_dim, X_train, y_train, X_val, y_val, X_t
         pruner=HyperbandPruner(min_resource=5, max_resource=config.epochs, reduction_factor=3)
     )
     study.optimize(
-        lambda trial:objective(model, input_dim, X_train, y_train, X_val, y_val, X_test, y_test, device, config, trial, global_best),
+        lambda trial:objective(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, device, config, trial, global_best),
         n_trials= config.n_trials,
         gc_after_trial=True,
         callbacks=[    
@@ -65,14 +65,7 @@ def optuna_study(model:nn.Module, input_dim, X_train, y_train, X_val, y_val, X_t
     }
     atomic_save_json(result, config.results)
     config.model_weights.mkdir(parents=True, exist_ok=True)
-    torch.save({
-            "best_val":global_best.val_acc,
-            "best_trail":global_best.trial_number,
-            "best_state": global_best.state,
-            "results":result        
-        },
-        config.model_weights / "optuna_best_covertype.pt"
-    )
+    torch.save({"best_state": global_best.state},config.model_weights / "optuna_best_covertype.pt")
     
     full_log_path = config.trial_log.with_name(f"{config.trial_log.stem}_full.csv")
     study.trials_dataframe().to_csv(full_log_path, index=False)
@@ -95,7 +88,5 @@ if __name__=="__main__":
 
     input_dim = X_train.shape[1]
 
-    model = ObliviousNATNet(input_dim, config.n_classes, config.depth, config.n_trees, config.dropout)
-
-    optuna_study(model,X_train, y_train, X_val, y_val, X_test, y_test, device, config)
+    optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, device, config)
 
