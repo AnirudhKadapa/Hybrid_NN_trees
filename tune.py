@@ -22,7 +22,7 @@ def log_trial_callback(study, trial, config:TrainingConfig):
         "params_count":  trial.user_attrs.get("params"),
         **trial.params,  # n_trees, lr, weight_decay, batch_size, dropout, label_smoothing
     }
-    log_path = config.trial_log
+    log_path = Path(config.trial_log / f'{config.dataset}_result.csv')
     config.trial_log.parent.mkdir(parents=True, exist_ok=True)
     file_exists = log_path.exists()
     with open(config.trial_log, "a", newline="") as f:
