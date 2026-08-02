@@ -67,7 +67,8 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
     config.model_weights.mkdir(parents=True, exist_ok=True)
     torch.save({"best_state": global_best.state},config.model_weights / f"optuna_best_{config.dataset}.pt")
 
-    log_results = config.trial_log / f'{config.dataset}.csv'
+    log_results = Path(config.trial_log / f'{config.dataset}.csv')
+    log_results.parent.mkdir(parents=True, exist_ok=True)
     full_log_path = log_results.with_name(f"{log_results.stem}_full.csv")
     study.trials_dataframe().to_csv(full_log_path, index=False)
 
