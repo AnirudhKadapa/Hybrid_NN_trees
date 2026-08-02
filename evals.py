@@ -24,6 +24,22 @@ def validation_acc(model:nn.Module, X: torch.Tensor, y:torch.Tensor, batch_size:
     return correct/total
 
 @torch.inference_mode()
+def validation_loss(model:nn.Module, X_val:torch.Tensor, y_val:torch.Tensor, criterion:nn.Module, device, batch_size=8192):
+    model.eval()
+    batch_total = 0
+    epoch_loss = torch.zeros((), device=device)
+    for i in range(0,X_val.size(0), batch_size):
+        X_batch = X_val[i:i+batch_size]
+        y_batch = y_val[i:i+batch_size]
+        output = model(X_batch)
+        loss = criterion(output, y_batch)
+        batch_seen = y_batch.size(0)
+        epoch_loss = loss.detach() * batch_seen
+        batch_total += batch_seen
+
+    return (epoch_loss/batch_total).item()
+
+@torch.inference_mode()
 def test_models(model:nn.Module, X_test:torch.Tensor, y_test:torch.Tensor):
     model.eval()
     

@@ -6,7 +6,7 @@ from torch.optim import AdamW, lr_scheduler
 from torch.amp import GradScaler
 from config import TrainingConfig
 from training_utils import get_parameters, atomic_save, verify_checkpoint, atomic_save_json
-from evals import validation_acc
+from evals import validation_acc, validation_loss
 
 def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_train:torch.Tensor, y_val:torch.Tensor, device, config:TrainingConfig):
     model_raw = model_raw.to(device)
@@ -64,7 +64,7 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
     t0 = time.perf_counter()
     stop_reason = None
     print()
-    print(f"Num_trees: {config.n_trees}, Depth: {config.depth}, learning rate: {config.lr}, WD: {config.weight_decay}, LS:{config.label_smoothing}")
+    print(f"Num_trees: {config.n_trees}, Depth: {config.depth}, learning rate: {config.lr}, WD: {config.weight_decay}, LS:{config.label_smoothing}, classes:{config.n_classes}")
 
     for epoch in range(start_epoch,config.epochs+1):
         model.train()
@@ -107,19 +107,21 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
 
         avg_loss = (epoch_loss/batch_total).item()
         val_acc = validation_acc(model,X_val,y_val)
+        val_loss = validation_loss(model, X_val, y_val, loss_criterion, device)
         
         history.append(
             {
                 "epoch":epoch,
                 "loss":avg_loss,
-                "val_acc":val_acc
+                "val_acc":val_acc,
+                "val_loss":val_loss
             }
         )
         improved = val_acc > best_val_accuracy + 1e-4
 
         if improved:
             best_val_accuracy = val_acc
-            best_state = {name: tensor.detach().cpu().clone() for name, tensor in model_raw.state_dict().items()}
+            best_state = {name: tensor.clone() for name, tensor in model_raw.state_dict().items()}
             patience = 0
         else:
             patience += 1

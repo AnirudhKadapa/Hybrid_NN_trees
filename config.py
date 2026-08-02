@@ -22,6 +22,7 @@ class TrainingConfig:
     n_trials:int = 50 
     dropout:float = 0.0
 
+    dataset:str = 'Covertype'
     study_name:str = "Oblivious_nat"
     cache_dir: Path = Path("./dataset_cache/covertype")
 
@@ -63,6 +64,7 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--label_smoothing", type=float, default=None, help="Cross Entropy label Smoothing")
     parser.add_argument("--batch_size", type=int, default=None, help="Size of each batch processed")
     parser.add_argument("--dropout", type=float, default=None, help="Dropout Value")
+    parser.add_argument("--dataset", type=str, default=None, help="Dataset Name")
     parser.add_argument("--n_trials", type=int, default=None,help="Number of optuna Trials")
     parser.add_argument("--study_name",  default=None, help="optuna study name")
     parser.add_argument("--run_root", default=None, help="root directory for all the run saves")

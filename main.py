@@ -45,7 +45,7 @@ def main():
         raise RuntimeError(
             "Training ended before producing a valid best model state"
         )
-    torch.save(best_state,config.model_weights/"obnat_covertype.pt")
+    torch.save(best_state,config.model_weights/f"obnat_{config.dataset}.pt")
     model.load_state_dict(best_state)
     
 
