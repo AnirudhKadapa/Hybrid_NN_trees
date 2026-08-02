@@ -10,6 +10,8 @@ from config import TrainingConfig, parse_config
 from optuna_objective import objective
 from data import load_data
 from training_utils import atomic_save_json
+from model_layers import ObliviousNATNet
+from evals import test_models
 
 
 def log_trial_callback(study, trial, config:TrainingConfig):
@@ -54,13 +56,48 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
 
     best = study.best_trial
 
+    if global_best.state is None or global_best.config is None:
+        raise RuntimeError("Optuna finished without saving a valid best model.")
+
+    # Use the configuration corresponding to the saved global-best state.
+    best_config = global_best.config
+
+    best_model = ObliviousNATNet(
+        input_dim=input_dim,
+        output_dim=best_config.n_classes,
+        depth=best_config.depth,
+        n_trees=best_config.n_trees,
+        dropout=best_config.dropout,
+    ).to(device)
+
+    best_model.load_state_dict(global_best.state)
+    best_model.eval()
+
+    # Evaluate the test set exactly once.
+    test_results = test_models(
+        best_model,
+        X_test,
+        y_test,
+    )
+
     result = {
-        "best_val_acc": best.value,
-        "best_params":  best.params,
-        "test_acc":     best.user_attrs.get("test_acc"),
-        "test_auc":     best.user_attrs.get("test_auc"),
+        "best_val_acc": global_best.val_acc,
+        "best_params": {
+            "lr": best_config.lr,
+            "weight_decay": best_config.weight_decay,
+            "batch_size": best_config.batch_size,
+            "depth": best_config.depth,
+            "n_trees": best_config.n_trees,
+            "dropout": best_config.dropout,
+            "label_smoothing": best_config.label_smoothing,
+        },
+        "test_acc": test_results["test_acc"],
+        "test_auc": test_results["test_auc"],
+        "test_f1": test_results["test_f1"],
         "model_params": best.user_attrs.get("params"),
-        "n_trials":     len(study.trials),
+        "best_trial": global_best.trial_number,
+        "best_epoch": global_best.best_epoch,
+        "n_trials": len(study.trials),
     }
     result_file = f'{config.dataset}_result.json'
     atomic_save_json(result, Path(config.results/result_file))
