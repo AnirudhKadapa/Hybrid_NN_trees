@@ -6,7 +6,7 @@ from torch.amp import GradScaler
 import optuna
 from config import TrainingConfig
 from training_utils import get_parameters
-from evals import validation_acc
+from evals import validation_acc, get_layernorm_output
 
 
 def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Tensor, X_val:torch.Tensor, y_val:torch.Tensor, device, config:TrainingConfig, trial:optuna.Trial):
@@ -113,7 +113,8 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
     model_raw.load_state_dict(best_state)
     model_raw.eval()
     layer1_entropy = model_raw.layer1.leaf_entropy(X_val)
-    layer2_entropy = model_raw.layer2.leaf_entropy(model_raw.layernorm(model_raw.layer1(X_val)))
+    layer1_out = get_layernorm_output(model_raw, X_val)  
+    layer2_entropy = model_raw.layer2.leaf_entropy(layer1_out)
 
     return best_val_accuracy, best_state, best_epoch, layer1_entropy, layer2_entropy
 

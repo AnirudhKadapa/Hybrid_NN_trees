@@ -39,6 +39,14 @@ def validation_loss(model:nn.Module, X_val:torch.Tensor, y_val:torch.Tensor, cri
 
     return (epoch_loss/batch_total).item()
 
+@torch.no_grad()
+def get_layernorm_output(model_raw, X, batch_size=8192):
+    outputs = []
+    for i in range(0, X.size(0), batch_size):
+        batch_out = model_raw.layernorm(model_raw.layer1(X[i:i+batch_size]))
+        outputs.append(batch_out)
+    return torch.cat(outputs, dim=0)
+
 @torch.inference_mode()
 def test_models(model:nn.Module, X_test:torch.Tensor, y_test:torch.Tensor):
     model.eval()
