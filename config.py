@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass, replace, field
 from pathlib import Path
 import argparse
@@ -50,6 +49,17 @@ class TrainingConfig:
         self.results = run_dir/'results'
         self.model_weights = run_dir/'model_weights'
         self.trial_log = run_dir/'tune_results'
+
+        if self.dataset=='covertype':
+            self.n_classes = 7
+        elif self.dataset=='helena':
+            self.n_classes = 100
+        elif self.dataset=='epsilon':
+            self.n_classes = 2
+        elif self.dataset=='adult':
+            self.n_classes = 2
+        elif self.dataset == 'higgs':
+            self.n_classes = 2
 
 def parse_config() -> TrainingConfig:
     parser = argparse.ArgumentParser(description="ObnatNet")
