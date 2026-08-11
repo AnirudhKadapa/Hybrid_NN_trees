@@ -80,7 +80,7 @@ class ObliviousNATNet(nn.Module):
     def forward(self,x:torch.tensor) -> torch.tensor:
         layer1 = self.layer1(x)
         layernorm = self.layernorm(layer1)
-        layer2 = self.layer2(layernorm)
+        layer2 = self.layer2(layernorm) + layernorm
         linear = self.linear(layer2)
         return linear
 

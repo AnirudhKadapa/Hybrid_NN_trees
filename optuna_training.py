@@ -110,7 +110,11 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
         raise RuntimeError(
             "Training  finished without producing a valid model state."
         )
+    model_raw.load_state_dict(best_state)
+    model_raw.eval()
+    layer1_entropy = model_raw.layer1.leaf_entropy(X_val)
+    layer2_entropy = model_raw.layer2.leaf_entropy(model_raw.layernorm(model_raw.layer1(X_val)))
 
-    return best_val_accuracy, best_state, best_epoch 
+    return best_val_accuracy, best_state, best_epoch, layer1_entropy, layer2_entropy
 
 

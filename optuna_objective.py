@@ -14,10 +14,14 @@ def objective(input_dim:int, X_train:torch.Tensor, y_train, X_val, y_val, device
     parameter_count = sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
 
     trial.set_user_attr("params", parameter_count)
+    
 
     try: 
-        t_bestval, t_beststate, t_bestepoch = optuna_training(model, X_train, y_train, X_val, y_val, device, config, trial)
+        t_bestval, t_beststate, t_bestepoch, layer1_entropy, layer2_entropy = optuna_training(model, X_train, y_train, X_val, y_val, device, config, trial)
 
+        trial.set_user_attr("layer1_entropy", layer1_entropy)
+        trial.set_user_attr("layer2_entropy", layer2_entropy)
+        
         update_best_results = global_best.update(
             val_acc= t_bestval,
             state= t_beststate,

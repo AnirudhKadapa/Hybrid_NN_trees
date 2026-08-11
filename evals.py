@@ -50,8 +50,10 @@ def test_models(model:nn.Module, X_test:torch.Tensor, y_test:torch.Tensor):
     test_acc = float((predictions==y_true).mean())
     test_f1  = float(f1_score(y_true, predictions, average="macro"))
     try:
-        test_auc = float(roc_auc_score(
-            y_true, probs_cpu, multi_class="ovr", average="macro"))
+        if probs_cpu.shape[1] == 2:
+            test_auc = float(roc_auc_score(y_true, probs_cpu[:, 1]))
+        else:
+            test_auc = float(roc_auc_score(y_true, probs_cpu, multi_class="ovr", average="macro"))
     except Exception:
         test_auc = 0.0
 

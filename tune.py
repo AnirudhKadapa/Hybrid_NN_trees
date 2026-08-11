@@ -21,6 +21,8 @@ def log_trial_callback(study, trial, config:TrainingConfig):
         "value_val_acc": trial.value,
         "test_acc":      trial.user_attrs.get("test_acc"),
         "test_auc":      trial.user_attrs.get("test_auc"),
+        "layer1_entropy":trial.user_attrs.get("layer1_entropy"),
+        "layer2_entropy": trial.user_attrs.get("layer2_entropy"),
         "params_count":  trial.user_attrs.get("params"),
         **trial.params,  # n_trees, lr, weight_decay, batch_size, dropout, label_smoothing
     }
