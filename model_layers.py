@@ -45,7 +45,7 @@ class ObliviousSharedLayer(nn.Module):
 
     
     @torch.no_grad()
-    def leaf_entropy(self,x: torch.Tensor, batch_size=8192):
+    def leaf_entropy(self,x: torch.Tensor, batch_size=2048):
         batch_sum = None
         n = x.size(0)
         for i in range(0,n,batch_size):
