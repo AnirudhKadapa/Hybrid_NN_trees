@@ -21,7 +21,7 @@ def objective(input_dim:int, X_train:torch.Tensor, y_train, X_val, y_val, device
 
         trial.set_user_attr("layer1_entropy", layer1_entropy)
         trial.set_user_attr("layer2_entropy", layer2_entropy)
-        
+
         update_best_results = global_best.update(
             val_acc= t_bestval,
             state= t_beststate,
@@ -39,7 +39,8 @@ def objective(input_dim:int, X_train:torch.Tensor, y_train, X_val, y_val, device
     
     except torch.OutOfMemoryError as error:
         raise optuna.TrialPruned(
-            "Cuda Out of Memoery"
+            f"Cuda Out of Memoery \n"
+            f"Num_trees: {config.n_trees}, Depth: {config.depth}"
         ) from error
 
     finally:
