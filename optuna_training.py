@@ -110,24 +110,12 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
         raise RuntimeError(
             "Training  finished without producing a valid model state."
         )
-    print("Lost Here")
-    print()
+    
     model_raw.load_state_dict(best_state)
-    print("Lost Here")
-    print()
-
     model_raw.eval()
     layer1_entropy = model_raw.layer1.leaf_entropy(X_val)
-
-    print("Lost Here")
-    print()
     layer1_out = get_layernorm_output(model_raw, X_val)  
-
-    print("Lost Here")
-    print()
     layer2_entropy = model_raw.layer2.leaf_entropy(layer1_out)
-    print("Lost Here")
-    print()
 
     return best_val_accuracy, best_state, best_epoch, layer1_entropy, layer2_entropy
 
