@@ -6,7 +6,7 @@ from torch.amp import GradScaler
 import optuna
 from config import TrainingConfig
 from training_utils import get_parameters
-from evals import validation_acc, get_layernorm_output
+from evals import validation_acc, get_layernorm_output, _log_entropy_on_prune
 
 
 def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Tensor, X_val:torch.Tensor, y_val:torch.Tensor, device, config:TrainingConfig, trial:optuna.Trial):
@@ -101,6 +101,7 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
         )
 
         if trial.should_prune():
+            _log_entropy_on_prune(model_raw, X_val, trial)
             raise optuna.TrialPruned()
 
         if patience >= config.patience:

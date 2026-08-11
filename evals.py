@@ -47,6 +47,23 @@ def get_layernorm_output(model_raw, X, batch_size=1024):
         outputs.append(batch_out)
     return torch.cat(outputs, dim=0)
 
+@torch.no_grad()
+def _log_entropy_on_prune(model_raw, X_val, trial, batch_size=1024):
+    model_raw.eval()
+    layer1_entropy = model_raw.layer1.leaf_entropy(X_val)
+
+    outputs = []
+    for i in range(0, X_val.size(0), batch_size):
+        batch_out = model_raw.layernorm(model_raw.layer1(X_val[i:i+batch_size]))
+        outputs.append(batch_out)
+    layer1_out = torch.cat(outputs, dim=0)
+
+    layer2_entropy = model_raw.layer2.leaf_entropy(layer1_out)
+
+    trial.set_user_attr("layer1_entropy", layer1_entropy)
+    trial.set_user_attr("layer2_entropy", layer2_entropy)
+    model_raw.train()
+
 @torch.inference_mode()
 def test_models(model:nn.Module, X_test:torch.Tensor, y_test:torch.Tensor):
     model.eval()
