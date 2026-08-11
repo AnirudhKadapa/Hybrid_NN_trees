@@ -3,6 +3,7 @@ from dataclasses import dataclass, replace, field
 from pathlib import Path
 import argparse
 import optuna
+from datetime import datetime
 
 
 def last_completed(path:Path, count):
@@ -22,7 +23,7 @@ class TrainingConfig:
     n_trials:int = 50 
     dropout:float = 0.0
 
-    dataset:str = 'Covertype'
+    dataset:str = 'covertype'
     study_name:str = "Oblivious_nat"
     cache_dir: Path = field(init=False)
 
@@ -39,18 +40,12 @@ class TrainingConfig:
     checkpoint_save:int = 10
 
     def __post_init__(self)-> None:
+        time_now = datetime.now()
+        folder = time_now.strftime("%Y-%m-%d_%H-%M-%S")
+        folder1 = time_now.strftime("%Y-%m-%d")
         self.cache_dir = Path("./dataset_cache/") / f"{self.dataset}" 
         self.run_root.mkdir(parents=True, exist_ok=True)
-        # count = len(os.listdir(self.run_root))
-        # run_dir = None
-        # if count > 0:
-        #     if last_completed(self.run_root, count):
-        #         count +=1
-        #     run_dir = self.run_root/Path(f'{count}.runs')
-        # else:
-        #     run_dir = self.run_root/f'1.runs'
-        # run_dir.mkdir(parents=True, exist_ok=True)
-        run_dir = self.run_root / f"{self.dataset}"
+        run_dir = self.run_root /f"{self.dataset}_{folder1}"/f"{self.dataset}_{folder}"
         self.ckpt =  run_dir/'checkpoints'
         self.results = run_dir/'results'
         self.model_weights = run_dir/'model_weights'
