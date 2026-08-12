@@ -8,4 +8,4 @@ def params():
     "dropout": 0.14912115999013786,
     "label_smoothing": 0.04637834583445727
     }
-    return params
+    return best_params
