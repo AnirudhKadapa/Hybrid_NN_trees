@@ -1,15 +1,14 @@
 import time
 import torch
 from pathlib import Path
-from sklearn.metrics import roc_auc_score, f1_score
 from data import load_data
 from config import parse_config
 from model_layers import ObliviousNATNet
 from train import training
 from training_utils import atomic_save_json
-from evals import chunked_probs
 from test_params import params
 from dataclasses import replace
+from evals import test_models
 
 def main():
     torch.manual_seed(42)
@@ -52,29 +51,20 @@ def main():
 
     model.eval()
 
-    probs = chunked_probs(model, X_test)
-    probs_cpu = probs.cpu().numpy()
-    predictions = probs.argmax(1).cpu().numpy()
-    y_true = y_test.cpu().numpy()
-    test_acc = float((predictions==y_true).mean())
-    test_f1  = float(f1_score(y_true, predictions, average="macro"))
-    try:
-        if probs_cpu.shape[1] == 2:
-            test_auc = float(roc_auc_score(y_true, probs_cpu[:, 1]))
-        else:
-            test_auc = float(roc_auc_score(y_true, probs_cpu, multi_class="ovr", average="macro"))
-    except Exception:
-        test_auc = 0.0
+    t1 = time.perf_counter()
+    test_results = test_models(model, X_test, y_test)
+    elapsed1 = time.perf_counter()-t1
 
     results = {
-        "model":        "PerTreeObliviousNAT",
+        "dataset":      config.dataset,
         "n_trees":      config.n_trees,
         "depth":        config.depth,
         "best_val_acc": best_val_accuracy,
-        "test_acc":     test_acc,
-        "test_auc":     test_auc,
-        "test_f1":      test_f1,
-        "train_time": round(elapsed, 3),
+        "test_acc":     test_results['test_acc'],
+        "test_auc":     test_results['test_auc'],
+        "test_f1":      test_results['test_f1'],
+        "train_time":   round(elapsed, 3),
+        "test_time":    round(elapsed1,3),
         "history":      history,
     }
     file = 'obnat_results.json'
@@ -82,7 +72,7 @@ def main():
     atomic_save_json(results, file_path)
 
     print("-"*70)
-    print("Oblivious Nat Net: Results")
+    print(f"Oblivious Nat Net: Results- {config.dataset}")
     print('-'*70)
     print(f"Architecture: Number of Trees:{config.n_trees}, depth:{config.depth}")
     print(f"Best Validation Accuracy: {results['best_val_acc']}")

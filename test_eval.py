@@ -21,7 +21,7 @@ def test_obnat():
     }
     model = ObliviousNATNet(
         input_dim=X_train.shape[1],
-        output_dim=7,
+        output_dim=config.n_classes,
         depth=best_params["depth"],
         n_trees=best_params["n_trees"],
         dropout=best_params["dropout"],

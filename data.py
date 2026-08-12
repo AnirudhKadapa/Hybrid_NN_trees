@@ -1,11 +1,13 @@
 import numpy as np
 import torch
 from pathlib import Path
+import pandas as pd
 from sklearn.datasets import fetch_covtype
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.utils import Bunch
 from sklearn.datasets import fetch_openml
+from capymoa.datasets import CovtFD
 
 def download_dataset_covertype(cache_dir):
     Path(cache_dir).mkdir(parents=True, exist_ok=True)   
@@ -172,6 +174,13 @@ def load_data(cache_dir: Path, filename):
         data["y_test"]
     )
 
+def capymoa_covtype_test():
+    download_location = Path("./covfd")
+    download_location.mkdir(parents=True, exist_ok=True)
+    covfd = CovtFD("./covfd",auto_download=False ,file_type="csv")
+    return covfd
+
+
 if __name__=="__main__":
     data_path = Path('.')
     cache_dir = Path("./dataset_cache/covertype")
@@ -229,7 +238,13 @@ if __name__=="__main__":
     else:
         process_adult(np_train, np_test, np_val, adultincome_path)
 
-
+    covfd = capymoa_covtype_test()
+    print(covfd)
+    df = pd.read_csv("./covfd/covtFD.csv")
+    print(df.head())
+    X_train,_,_,_,_,_ = load_data(cache_dir, 'covertype_train_test_val.pt')
+    print(X_train.shape)
+    print(X_train[:6])
 
 
 
