@@ -46,7 +46,7 @@ class TrainingConfig:
         self.run_root.mkdir(parents=True, exist_ok=True)
         run_dir = self.run_root /f"{self.dataset}_{folder1}"/f"{self.dataset}_{folder}"
         self.ckpt =  run_dir/'checkpoints'
-        self.results = run_dir/'results'
+        # self.results = run_dir/'results'
         self.model_weights = run_dir/'model_weights'
         self.trial_log = run_dir/'tune_results'
 
