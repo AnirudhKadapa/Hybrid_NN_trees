@@ -28,7 +28,7 @@ class TrainingConfig:
 
     run_root: Path = Path("./runs")
     ckpt:Path = field(init=False) 
-    results:Path = field(init=False)
+    results:Path = None
     model_weights:Path = field(init=False) 
     trial_log:Path = field(init=False)
 
