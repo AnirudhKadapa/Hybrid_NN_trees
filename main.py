@@ -15,7 +15,7 @@ def main():
     torch.set_float32_matmul_precision('high')
     torch._dynamo.config.cache_size_limit = 64
     base_config = parse_config()
-    best_params = params()
+    best_params = params(base_config.dataset)
     config = replace(base_config, **best_params)
 
     filename = f"{config.dataset}_train_test_val.pt"
