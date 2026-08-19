@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e 
 
-datasets=("higgs" "epsilon" "helena")
+datasets=("epsilon" "helena" "adult")
 
 for data in "${datasets[@]}"; do
     echo ""

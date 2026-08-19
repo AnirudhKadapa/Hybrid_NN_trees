@@ -46,7 +46,7 @@ class TrainingConfig:
         self.run_root.mkdir(parents=True, exist_ok=True)
         run_dir = self.run_root /f"{self.dataset}_{folder1}"/f"{self.dataset}_{folder}"
         self.ckpt =  run_dir/'checkpoints'
-        # self.results = run_dir/'results'
+        self.results = run_dir/'results'
         self.model_weights = run_dir/'model_weights'
         self.trial_log = run_dir/'tune_results'
 
@@ -86,6 +86,7 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--checkpoint_save",type=int, default=None, help="Save last after every 10 epochs")
     args = parser.parse_args()
 
+    config = TrainingConfig()
     path_fields = {
         "cache_dir",
         "ckpt",
@@ -101,7 +102,7 @@ def parse_config() -> TrainingConfig:
         if value is not None
     }
 
-    return TrainingConfig(**overrides)
+    return replace(config,**overrides)
 
 
 def trial_config(trial: optuna.Trial, base_config:TrainingConfig) -> TrainingConfig:
