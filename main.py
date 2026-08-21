@@ -16,7 +16,10 @@ def main():
     torch._dynamo.config.cache_size_limit = 64
     base_config = parse_config()
     best_params = params(base_config.dataset)
-    config = replace(base_config, **best_params)
+    if best_params:
+        config = replace(base_config, **best_params)
+    else:
+        config = base_config
 
     filename = f"{config.dataset}_train_test_val.pt"
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.cache_dir, filename)
