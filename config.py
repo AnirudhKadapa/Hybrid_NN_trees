@@ -109,8 +109,8 @@ def trial_config(trial: optuna.Trial, base_config:TrainingConfig) -> TrainingCon
     lr = trial.suggest_float("lr",1e-4,1e-2, log=True)
     weight_decay = trial.suggest_float("weight_decay",1e-6,1e-2,log=True)
     batch_size = trial.suggest_categorical("batch_size",[4096])
-    depth = trial.suggest_categorical("depth",[2,4,6,8,10])
-    n_trees = trial.suggest_categorical("n_trees",[8,16,32,64,96,112,120,128,136,144,152,192])
+    depth = trial.suggest_categorical("depth",[2,4,6]) #[2,4,6,8,10]
+    n_trees = trial.suggest_categorical("n_trees",[8,16,32]) #[8,16,32,64,96,112,120,128,136,144,152,192]
     dropout = trial.suggest_float("dropout",0.0,0.3)
     label_smoothing = trial.suggest_float("label_smoothing",0.0,0.1)
     
