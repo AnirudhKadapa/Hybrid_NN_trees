@@ -13,6 +13,7 @@ def last_completed(path:Path, count):
 
 @dataclass
 class TrainingConfig:
+    seed_value: int = 42
     epochs: int = 150
     weight_decay: float = 1e-4
     patience: int = 15
@@ -63,6 +64,7 @@ class TrainingConfig:
 
 def parse_config() -> TrainingConfig:
     parser = argparse.ArgumentParser(description="ObnatNet")
+    parser.add_argument("--seed_value",type=int, default=None, help="Initial seed value")
     parser.add_argument("--epochs", type=int, default=None, help="Number of epochs")
     parser.add_argument("--weight_decay", type=float, default=None, help="AdamW weigt decay")
     parser.add_argument("--patience", type=int, default=None, help="Early stop after")
@@ -108,9 +110,8 @@ def parse_config() -> TrainingConfig:
 def trial_config(trial: optuna.Trial, base_config:TrainingConfig) -> TrainingConfig:
     lr = trial.suggest_float("lr",1e-4,1e-2, log=True)
     weight_decay = trial.suggest_float("weight_decay",1e-6,1e-2,log=True)
-    # batch_size = trial.suggest_categorical("batch_size",[32]) # [4096]
-    depth = trial.suggest_categorical("depth",[2,4,6]) #[2,4,6,8,10]
-    n_trees = trial.suggest_categorical("n_trees",[8,16,32]) #[8,16,32,64,96,112,120,128,136,144,152,192]
+    depth = trial.suggest_categorical("depth",[2,4,6,8,10]) #[2,4,6,8,10]
+    n_trees = trial.suggest_categorical("n_trees",[8,16,32,64,96,112,120,128,136,144,152,192]) #[8,16,32,64,96,112,120,128,136,144,152,192]
     dropout = trial.suggest_float("dropout",0.0,0.3)
     label_smoothing = trial.suggest_float("label_smoothing",0.0,0.1)
     
@@ -118,7 +119,6 @@ def trial_config(trial: optuna.Trial, base_config:TrainingConfig) -> TrainingCon
         base_config,
         lr = lr,
         weight_decay=weight_decay,
-        # batch_size = batch_size,
         depth = depth,
         n_trees = n_trees,
         dropout = dropout,
