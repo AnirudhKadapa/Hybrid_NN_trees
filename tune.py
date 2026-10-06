@@ -111,10 +111,10 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
     study.trials_dataframe().to_csv(full_log_path, index=False)
 
 if __name__=="__main__":
-    torch.manual_seed(42)
     torch.set_float32_matmul_precision('high')
     torch._dynamo.config.cache_size_limit = 64
     config = parse_config()
+    torch.manual_seed(config.seed_value)
     filename = f"{config.dataset}_train_test_val.pt"
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.cache_dir, filename)
     device = "cuda" if torch.cuda.is_available() else "cpu"
