@@ -10,6 +10,7 @@ from evals import validation_acc, get_layernorm_output, _log_entropy_on_prune
 
 
 def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Tensor, X_val:torch.Tensor, y_val:torch.Tensor, device, config:TrainingConfig, trial:optuna.Trial):
+    
     torch._dynamo.reset()
     model_raw = model_raw.to(device)
     model_params = get_parameters(model_raw)
@@ -42,29 +43,34 @@ def optuna_training(model_raw:nn.Module, X_train:torch.Tensor, y_train:torch.Ten
         batch_total = 0
         nan_flag = False
 
-        for i in range(0,N_new,config.batch_size):
-            idx = perm[i: i+ config.batch_size]
+        try:
+            for i in range(0,N_new,config.batch_size):
+                idx = perm[i: i+ config.batch_size]
 
-            optimizer.zero_grad(set_to_none=True)
+                optimizer.zero_grad(set_to_none=True)
 
-            with torch.autocast(device_type=device,dtype=torch.float16, enabled=(device=="cuda")):
-                output = model(X_train[idx])
-                loss = loss_criterion(output, y_train[idx])
+                with torch.autocast(device_type=device,dtype=torch.float16, enabled=(device=="cuda")):
+                    output = model(X_train[idx])
+                    loss = loss_criterion(output, y_train[idx])
 
-            if torch.isnan(loss):
-                print(f"loss values are either Nan or not finite at epoch {epoch}")
-                nan_flag = True
-                break
-            
-            scaler.scale(loss).backward()
-            scaler.unscale_(optimizer)
-            nn.utils.clip_grad_norm_(model.parameters(),1.0)
-            scaler.step(optimizer)
-            scaler.update()
+                if torch.isnan(loss):
+                    print(f"loss values are either Nan or not finite at epoch {epoch}")
+                    nan_flag = True
+                    break
+                
+                scaler.scale(loss).backward()
+                scaler.unscale_(optimizer)
+                nn.utils.clip_grad_norm_(model.parameters(),1.0)
+                scaler.step(optimizer)
+                scaler.update()
 
-            batch_size_seen = idx.numel()
-            epoch_loss += loss.detach() * batch_size_seen
-            batch_total += batch_size_seen
+                batch_size_seen = idx.numel()
+                epoch_loss += loss.detach() * batch_size_seen
+                batch_total += batch_size_seen
+
+        except RuntimeError as e:
+            if "out of memory" in str(e):
+                raise optuna.TrialPruned("CUDA OUT OF MEMORY")
 
         if nan_flag:
             raise optuna.TrialPruned(

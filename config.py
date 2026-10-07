@@ -32,6 +32,7 @@ class TrainingConfig:
     results:Path = None
     model_weights:Path = field(init=False) 
     trial_log:Path = field(init=False)
+    snapshot_path:Path = field(init=False) 
 
     n_classes:int =7
     depth:int = 8
@@ -50,6 +51,7 @@ class TrainingConfig:
         self.results = run_dir/'results'
         self.model_weights = run_dir/'model_weights'
         self.trial_log = run_dir/'tune_results'
+        self.snapshot_path = run_dir/'history'
 
         if self.dataset=='covertype':
             self.n_classes = 7
@@ -82,6 +84,7 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--results", default=None, help="saves json results for the training")
     parser.add_argument("--model_weights", default=None, help="model_weights save location")
     parser.add_argument("--trial_log", default=None, help="Trial log location")
+    parser.add_argument("--snapshot_path", default=None, help="Cuda history snapshot")
     parser.add_argument("--n_classes",type=int, default=None, help="Number of classes of dataset")
     parser.add_argument("--depth", type=int, default=None, help="Tree depth")
     parser.add_argument("--n_trees", type=int, default=None, help="Number of trees per layer")
@@ -96,6 +99,7 @@ def parse_config() -> TrainingConfig:
         "results",
         "model_weights",
         "trial_log",
+        "snapshot_path"
      }
 
     overrides = {

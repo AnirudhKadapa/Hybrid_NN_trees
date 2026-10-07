@@ -12,6 +12,7 @@ from data import load_data
 from training_utils import atomic_save_json
 from model_layers import ObliviousNATNet
 from evals import test_models
+import pickle
 
 
 def log_trial_callback(study, trial, config:TrainingConfig):
@@ -44,6 +45,7 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
         sampler=TPESampler(seed=42, multivariate=True),
         pruner=HyperbandPruner(min_resource=5, max_resource=config.epochs, reduction_factor=3)
     )
+    torch.cuda.memory._record_memory_history(max_entries=1000000)
     study.optimize(
         lambda trial:objective(input_dim, X_train, y_train, X_val, y_val, device, config, trial, global_best),
         n_trials= config.n_trials,
@@ -55,6 +57,12 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
             config,
         )]
     )
+    snapshot = torch.cuda.memory._snapshot()
+    torch.cuda.memory._record_memory_history(enabled=None)
+
+    snapshot_path = config.snapshot_path.mkdir(parents=True, exist_ok=True)
+    with open("memory_snapshot.pkl","wb") as f:
+        pickle.dump(Path(snapshot_path/snapshot), f)
 
     best = study.best_trial
 
