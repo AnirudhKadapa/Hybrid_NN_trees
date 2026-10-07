@@ -60,8 +60,8 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
     snapshot = torch.cuda.memory._snapshot()
     torch.cuda.memory._record_memory_history(enabled=None)
 
-    snapshot_path = config.snapshot_path.mkdir(parents=True, exist_ok=True)
-    snap_file = Path(snapshot_path/'memory_snapshot.pkl')
+    config.snapshot_path.mkdir(parents=True, exist_ok=True)
+    snap_file = Path(config.snapshot_path/'memory_snapshot.pkl')
     with open(snap_file,"wb") as f:
         pickle.dump(snapshot, f)
 
@@ -118,6 +118,7 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
     log_results = Path(config.trial_log / f'{config.dataset}.csv')
     full_log_path = log_results.with_name(f"{log_results.stem}_full.csv")
     study.trials_dataframe().to_csv(full_log_path, index=False)
+    print("\n Optuna Study Finished")
 
 if __name__=="__main__":
     torch.set_float32_matmul_precision('high')
