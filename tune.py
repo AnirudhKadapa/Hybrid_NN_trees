@@ -61,8 +61,9 @@ def optuna_study(input_dim, X_train, y_train, X_val, y_val, X_test, y_test, devi
     torch.cuda.memory._record_memory_history(enabled=None)
 
     snapshot_path = config.snapshot_path.mkdir(parents=True, exist_ok=True)
-    with open("memory_snapshot.pkl","wb") as f:
-        pickle.dump(Path(snapshot_path/snapshot), f)
+    snap_file = Path(snapshot_path/'memory_snapshot.pkl')
+    with open(snap_file,"wb") as f:
+        pickle.dump(snapshot, f)
 
     best = study.best_trial
 
