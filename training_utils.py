@@ -65,7 +65,7 @@ def atomic_save_json(history, path:Path):
 @torch.no_grad()
 def save_obnat_predictions(model, X_test, y_test, dataset_name, prediction_save: Path):
     model.eval()
-    prediction_save.parent.mkdir(parents=True, exist_ok=True)
+    prediction_save.mkdir(parents=True, exist_ok=True)
     device = next(model.parameters()).device
 
     X_tensor = torch.as_tensor(

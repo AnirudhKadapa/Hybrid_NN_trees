@@ -53,7 +53,6 @@ class TrainingConfig:
         self.trial_log = run_dir/'tune_results'
         self.snapshot_path = run_dir/'history'
         
-
         if self.dataset=='covertype':
             self.n_classes = 7
         elif self.dataset=='helena':
