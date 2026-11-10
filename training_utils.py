@@ -1,5 +1,6 @@
 import json, os
 from pathlib import Path
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -60,3 +61,30 @@ def atomic_save_json(history, path:Path):
     with temporary.open("w",encoding="utf-8") as f:
         json.dump(history,f,indent=2)
     os.replace(temporary, path)
+
+@torch.no_grad()
+def save_obnat_predictions(model, X_test, y_test, dataset_name, prediction_save: Path):
+    model.eval()
+    prediction_save.parent.mkdir(parents=True, exist_ok=True)
+    device = next(model.parameters()).device
+
+    X_tensor = torch.as_tensor(
+        X_test, dtype=torch.float32, device=device
+    )
+
+    logits = model(X_tensor)
+
+    y_pred = logits.argmax(dim=1).cpu().numpy()
+
+    y_true = (
+        y_test.cpu().numpy()
+        if isinstance(y_test, torch.Tensor)
+        else np.asarray(y_test)
+    )
+    save_file = Path(prediction_save/f"{dataset_name}_obnat_predictions.npz")
+
+    np.savez_compressed(
+        save_file,
+        y_true=y_true,
+        y_pred=y_pred
+    )

@@ -5,7 +5,7 @@ from data import load_data
 from config import parse_config
 from model_layers import ObliviousNATNet
 from train import training
-from training_utils import atomic_save_json
+from training_utils import atomic_save_json, save_obnat_predictions
 from test_params import params
 from dataclasses import replace
 from evals import test_models
@@ -57,7 +57,7 @@ def main():
     t1 = time.perf_counter()
     test_results = test_models(model, X_test, y_test)
     elapsed1 = time.perf_counter()-t1
-
+    save_obnat_predictions(model, X_test,y_test, config.dataset,config.results)
     results = {
         "dataset":      config.dataset,
         "n_trees":      config.n_trees,
