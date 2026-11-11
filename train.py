@@ -30,36 +30,36 @@ def training(model_raw:nn.Module, X_train:torch.Tensor, X_val:torch.Tensor, y_tr
     start_epoch = 1
     history = []
 
-    
-    checkpoint_file = 'checkpoint.pt'
-    ckpt = config.ckpt / checkpoint_file
-    checkpoint_valid = False
-    checkpoint = None
-    if ckpt.exists():
-        checkpoint = torch.load(ckpt, map_location="cpu",weights_only=False)
-        checkpoint_valid = verify_checkpoint(checkpoint, X_train.shape[1], config.n_trees, config.depth, config.n_classes, config.batch_size, config.epochs, config.lr, config.label_smoothing, config.weight_decay)        
+    if config.checkpoint_bool:    
+        checkpoint_file = 'checkpoint.pt'
+        ckpt = config.ckpt / checkpoint_file
+        checkpoint_valid = False
+        checkpoint = None
+        if ckpt.exists():
+            checkpoint = torch.load(ckpt, map_location="cpu",weights_only=False)
+            checkpoint_valid = verify_checkpoint(checkpoint, X_train.shape[1], config.n_trees, config.depth, config.n_classes, config.batch_size, config.epochs, config.lr, config.label_smoothing, config.weight_decay)        
 
-    if checkpoint_valid:
-        last_completed_epoch = checkpoint["last_epoch"]
-        model_raw.load_state_dict(checkpoint["last_model_state"])
-        scheduler.load_state_dict(checkpoint["last_scheduler_state"])
-        optimizer.load_state_dict(checkpoint["last_optimizer_state"])
-        scaler.load_state_dict(checkpoint["last_scaler_state"])
-        best_val_accuracy = checkpoint["best_val_acc"]
-        best_state = checkpoint["best_model_state"]
-        patience = checkpoint["last_patience"]
-        history = checkpoint["last_history_state"]
-        start_epoch = last_completed_epoch + 1
+        if checkpoint_valid:
+            last_completed_epoch = checkpoint["last_epoch"]
+            model_raw.load_state_dict(checkpoint["last_model_state"])
+            scheduler.load_state_dict(checkpoint["last_scheduler_state"])
+            optimizer.load_state_dict(checkpoint["last_optimizer_state"])
+            scaler.load_state_dict(checkpoint["last_scaler_state"])
+            best_val_accuracy = checkpoint["best_val_acc"]
+            best_state = checkpoint["best_model_state"]
+            patience = checkpoint["last_patience"]
+            history = checkpoint["last_history_state"]
+            start_epoch = last_completed_epoch + 1
 
-        print(f"Resuming from last Completed Epoch {last_completed_epoch}")
+            print(f"Resuming from last Completed Epoch {last_completed_epoch}")
 
-        if checkpoint["completed"]==True:
-            return (history,best_val_accuracy, best_state)
+            if checkpoint["completed"]==True:
+                return (history,best_val_accuracy, best_state)
 
-        if start_epoch > config.epochs:
-            print("Checkpoint already completed")
-            print(f"Finished Training for set epochs {config.epochs}")
-            return (history, best_val_accuracy, best_state)
+            if start_epoch > config.epochs:
+                print("Checkpoint already completed")
+                print(f"Finished Training for set epochs {config.epochs}")
+                return (history, best_val_accuracy, best_state)
 
     t0 = time.perf_counter()
     stop_reason = None

@@ -41,7 +41,8 @@ def main():
     t_start = time.perf_counter()
     history, best_val_accuracy, best_state = training(model,X_train,X_val,y_train,y_val, device, config)
     elapsed = time.perf_counter()-t_start
-
+    torch._dynamo.reset()
+    torch.cuda.empty_cache()
     config.model_weights.mkdir(parents=True, exist_ok=True)
 
     if best_state is None:

@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
+from evals import chunked_probs
 
 
 def get_parameters(model:nn.Module):
@@ -66,25 +67,8 @@ def atomic_save_json(history, path:Path):
 def save_obnat_predictions(model, X_test, y_test, dataset_name, prediction_save: Path):
     model.eval()
     prediction_save.mkdir(parents=True, exist_ok=True)
-    device = next(model.parameters()).device
-
-    X_tensor = torch.as_tensor(
-        X_test, dtype=torch.float32, device=device
-    )
-
-    logits = model(X_tensor)
-
-    y_pred = logits.argmax(dim=1).cpu().numpy()
-
-    y_true = (
-        y_test.cpu().numpy()
-        if isinstance(y_test, torch.Tensor)
-        else np.asarray(y_test)
-    )
-    save_file = Path(prediction_save/f"{dataset_name}_obnat_predictions.npz")
-
-    np.savez_compressed(
-        save_file,
-        y_true=y_true,
-        y_pred=y_pred
-    )
+    probs = chunked_probs(model, X_test)
+    y_pred = probs.argmax(dim=1).cpu().numpy()
+    y_true = y_test.cpu().numpy() if isinstance(y_test, torch.Tensor) else np.asarray(y_test)
+    np.savez_compressed(prediction_save / f"{dataset_name}_obnat_predictions.npz",
+                        y_true=y_true, y_pred=y_pred)

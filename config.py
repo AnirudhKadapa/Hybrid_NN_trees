@@ -39,6 +39,7 @@ class TrainingConfig:
     n_trees:int = 144
 
     checkpoint_save:int = 10
+    checkpoint_bool:bool=True
 
     def __post_init__(self)-> None:
         time_now = datetime.now()
@@ -89,6 +90,7 @@ def parse_config() -> TrainingConfig:
     parser.add_argument("--depth", type=int, default=None, help="Tree depth")
     parser.add_argument("--n_trees", type=int, default=None, help="Number of trees per layer")
     parser.add_argument("--checkpoint_save",type=int, default=None, help="Save last after every 10 epochs")
+    parser.add_argument("--checkpoint_bool",type=bool,default=None,help="checkpoint boolean for last checkpoint")
     args = parser.parse_args()
 
     config = TrainingConfig()

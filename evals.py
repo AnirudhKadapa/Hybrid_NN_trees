@@ -34,7 +34,7 @@ def validation_loss(model:nn.Module, X_val:torch.Tensor, y_val:torch.Tensor, cri
         output = model(X_batch)
         loss = criterion(output, y_batch)
         batch_seen = y_batch.size(0)
-        epoch_loss = loss.detach() * batch_seen
+        epoch_loss += loss.detach() * batch_seen
         batch_total += batch_seen
 
     return (epoch_loss/batch_total).item()
