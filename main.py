@@ -11,7 +11,7 @@ from dataclasses import replace
 from evals import test_models
 
 def main():
-    torch.manual_seed(42)
+    
     torch.set_float32_matmul_precision('high')
     torch._dynamo.config.cache_size_limit = 64
     base_config = parse_config()
@@ -20,7 +20,8 @@ def main():
         config = replace(base_config, **best_params)
     else:
         config = base_config
-
+    
+    torch.manual_seed(config.seed_value)
     filename = f"{config.dataset}_train_test_val.pt"
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.cache_dir, filename)
     device = "cuda" if torch.cuda.is_available() else "cpu"
